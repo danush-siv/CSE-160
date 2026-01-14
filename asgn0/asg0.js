@@ -5,17 +5,13 @@ var ctx;
 function main() {
     // Retrieve <canvas> element
     canvas = document.getElementById('gl-canvas');
-
-    // Get the rendering context for WebGL (for compatibility)
-    gl = canvas.getContext("webgl");
-    if (!gl) {
-        console.log('WebGL unavailable');
-    } else {
-        console.log('WebGL is good to go');
-    }
     
     // Get 2D context for drawing
     ctx = canvas.getContext("2d");
+    if (!ctx) {
+        console.error('Unable to get 2D context');
+        return;
+    }
     
     // Clear canvas with black background
     ctx.fillStyle = "black";
