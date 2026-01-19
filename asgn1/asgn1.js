@@ -44,10 +44,10 @@ function main() {
         }
     };
     
-    // Initialize UI
-    updateColor();
-    updateSize();
-    updateSegments();
+    // Initialize UI with default values
+    g_color = [0.0, 0.5, 1.0]; // Red=0, Green=50, Blue=100
+    g_size = 1.0;
+    g_segments = 3;
     
     // Initial render
     renderAllShapes();
@@ -216,21 +216,14 @@ function updateColor() {
     var blue = document.getElementById('blue-slider').value / 100.0;
     
     g_color = [red, green, blue];
-    
-    // Update display values
-    document.getElementById('red-value').textContent = document.getElementById('red-slider').value;
-    document.getElementById('green-value').textContent = document.getElementById('green-slider').value;
-    document.getElementById('blue-value').textContent = document.getElementById('blue-slider').value;
 }
 
 function updateSize() {
     g_size = parseFloat(document.getElementById('size-slider').value);
-    document.getElementById('size-value').textContent = g_size;
 }
 
 function updateSegments() {
     g_segments = parseInt(document.getElementById('segments-slider').value);
-    document.getElementById('segments-value').textContent = g_segments;
 }
 
 function clearCanvas() {
