@@ -1,3 +1,5 @@
+// Site link: http://danush-siv.github.io/CSE-160/asgn1/asgn1.html
+
 // Global variables for WebGL drawing application
 var gl;
 var canvas;
@@ -211,6 +213,11 @@ function click(ev) {
     }
     
     renderAllShapes();
+}
+
+// Alias function name as required by assignment criteria
+function handleClicks(ev) {
+    click(ev);
 }
 
 function renderAllShapes() {
