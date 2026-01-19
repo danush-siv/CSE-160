@@ -1,5 +1,6 @@
+// Danush Sivarajan
+// CSE 160
 // Circle class for drawing circles on the canvas
-// edited asgn1
 class Circle {
     constructor(x, y, color, size, segments) {
         this.x = x;

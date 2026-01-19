@@ -1,3 +1,5 @@
+// Danush Sivarajan
+// CSE 160
 // Point class for drawing points on the canvas
 class Point {
     constructor(x, y, color, size) {

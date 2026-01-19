@@ -1,3 +1,5 @@
+// Danush Sivarajan
+// CSE 160
 // Site link: http://danush-siv.github.io/CSE-160/asgn1/asgn1.html
 
 // Global variables for WebGL drawing application
