@@ -68,14 +68,31 @@ function setupWebGL() {
     
     // Get WebGL context with preserveDrawingBuffer for better performance
     // Try 'webgl' first, then fallback to 'experimental-webgl'
-    gl = canvas.getContext('webgl', { preserveDrawingBuffer: true }) || 
-         canvas.getContext('experimental-webgl', { preserveDrawingBuffer: true });
+    var contextAttributes = { 
+        preserveDrawingBuffer: true,
+        antialias: false,
+        depth: false,
+        stencil: false
+    };
+    
+    gl = canvas.getContext('webgl', contextAttributes);
+    if (!gl) {
+        gl = canvas.getContext('experimental-webgl', contextAttributes);
+    }
+    if (!gl) {
+        // Try without attributes as last resort
+        gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    }
     
     if (!gl) {
         console.error('Unable to get WebGL context. Your browser may not support WebGL.');
+        console.error('Canvas element:', canvas);
+        console.error('Canvas width:', canvas.width, 'height:', canvas.height);
         alert('WebGL is not supported in your browser. Please use a modern browser like Chrome, Firefox, or Edge.');
         return false;
     }
+    
+    console.log('WebGL context created successfully');
     
     // Set viewport to match canvas size
     gl.viewport(0, 0, canvas.width, canvas.height);
@@ -117,6 +134,12 @@ function connectVariablesToGLSL() {
 }
 
 function initShaders() {
+    // Check if WebGL context exists
+    if (!gl) {
+        console.error('WebGL context not available in initShaders');
+        return false;
+    }
+    
     // Create vertex shader
     var vertexShader = loadShader(gl.VERTEX_SHADER, VSHADER_SOURCE);
     if (!vertexShader) {
