@@ -200,16 +200,22 @@ function click(ev) {
     var y_webgl = -((y / canvas.height) * 2 - 1);
     
     // Create shape based on current brush type
+    console.log('Click - Current brush type:', g_currentBrushType);
     if (g_currentBrushType === 'point') {
         var point = new Point(x_webgl, y_webgl, g_color, g_size);
         shapesList.push(point);
+        console.log('Created Point');
     } else if (g_currentBrushType === 'triangle') {
         // Triangle constructor: (x, y, color, size) - 4 args for default triangle
         var triangle = new Triangle(x_webgl, y_webgl, g_color, g_size);
         shapesList.push(triangle);
+        console.log('Created Triangle');
     } else if (g_currentBrushType === 'circle') {
         var circle = new Circle(x_webgl, y_webgl, g_color, g_size, g_segments);
         shapesList.push(circle);
+        console.log('Created Circle');
+    } else {
+        console.error('Unknown brush type:', g_currentBrushType);
     }
     
     renderAllShapes();
@@ -238,6 +244,7 @@ function renderAllShapes() {
 
 function setBrushType(type) {
     g_currentBrushType = type;
+    console.log('Brush type set to:', g_currentBrushType);
     
     // Update button styles
     document.getElementById('point-button').classList.remove('active');
