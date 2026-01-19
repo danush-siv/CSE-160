@@ -200,22 +200,28 @@ function click(ev) {
     var y_webgl = -((y / canvas.height) * 2 - 1);
     
     // Create shape based on current brush type
-    console.log('Click - Current brush type:', g_currentBrushType);
+    console.log('Click - Current brush type:', g_currentBrushType, 'Type is:', typeof g_currentBrushType);
+    console.log('g_color:', g_color, 'g_size:', g_size, 'g_segments:', g_segments);
+    
     if (g_currentBrushType === 'point') {
         var point = new Point(x_webgl, y_webgl, g_color, g_size);
         shapesList.push(point);
-        console.log('Created Point');
+        console.log('Created Point, shape type:', point.constructor.name);
     } else if (g_currentBrushType === 'triangle') {
         // Triangle constructor: (x, y, color, size) - 4 args for default triangle
         var triangle = new Triangle(x_webgl, y_webgl, g_color, g_size);
         shapesList.push(triangle);
-        console.log('Created Triangle');
+        console.log('Created Triangle, shape type:', triangle.constructor.name);
     } else if (g_currentBrushType === 'circle') {
         var circle = new Circle(x_webgl, y_webgl, g_color, g_size, g_segments);
         shapesList.push(circle);
-        console.log('Created Circle');
+        console.log('Created Circle, shape type:', circle.constructor.name);
+        console.log('Circle properties - x:', circle.x, 'y:', circle.y, 'radius:', circle.radius, 'segments:', circle.segments);
     } else {
-        console.error('Unknown brush type:', g_currentBrushType);
+        console.error('Unknown brush type:', g_currentBrushType, 'Type:', typeof g_currentBrushType);
+        // Default to point if unknown
+        var point = new Point(x_webgl, y_webgl, g_color, g_size);
+        shapesList.push(point);
     }
     
     renderAllShapes();
@@ -243,8 +249,14 @@ function renderAllShapes() {
 }
 
 function setBrushType(type) {
+    // Ensure type is a valid string
+    if (typeof type !== 'string') {
+        console.error('Invalid brush type:', type);
+        return;
+    }
+    
     g_currentBrushType = type;
-    console.log('Brush type set to:', g_currentBrushType);
+    console.log('Brush type set to:', g_currentBrushType, 'Type is:', typeof g_currentBrushType);
     
     // Update button styles
     document.getElementById('point-button').classList.remove('active');
@@ -257,6 +269,8 @@ function setBrushType(type) {
         document.getElementById('triangle-button').classList.add('active');
     } else if (type === 'circle') {
         document.getElementById('circle-button').classList.add('active');
+    } else {
+        console.error('Unknown brush type in setBrushType:', type);
     }
 }
 
