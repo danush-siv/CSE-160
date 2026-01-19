@@ -254,11 +254,12 @@ function setBrushType(type) {
 }
 
 function updateColor() {
-    var red = document.getElementById('red-slider').value / 100.0;
-    var green = document.getElementById('green-slider').value / 100.0;
-    var blue = document.getElementById('blue-slider').value / 100.0;
+    var red = parseFloat(document.getElementById('red-slider').value) / 100.0;
+    var green = parseFloat(document.getElementById('green-slider').value) / 100.0;
+    var blue = parseFloat(document.getElementById('blue-slider').value) / 100.0;
     
     g_color = [red, green, blue];
+    console.log('updateColor called - g_color set to:', g_color);
 }
 
 function updateSize() {
