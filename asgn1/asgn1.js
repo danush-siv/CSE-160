@@ -337,23 +337,18 @@ function drawPicture() {
     var winR1 = new Triangle(0.3, -0.1, 0.4, -0.1, 0.4, 0.0, currentColor, 1.0);
     var winR2 = new Triangle(0.3, -0.1, 0.4, 0.0, 0.3, 0.0, currentColor, 1.0);
     
-    // Sun (multiple triangles) - uses current color and segment count, size affects radius
+    // Sun (circle) - uses current color, segment count, and size
     var sunCenterX = 0.7;
     var sunCenterY = 0.7;
-    var sunRadius = 0.05 + (sizeScale * 0.15); // Size slider affects sun size
-    console.log('Sun radius:', sunRadius, 'Sun segments:', segments);
-    var sunTriangles = [];
-    for (var i = 0; i < segments; i++) { // Segment slider affects sun smoothness
-        var angle1 = (i * 2 * Math.PI) / segments;
-        var angle2 = ((i + 1) * 2 * Math.PI) / segments;
-        var x1 = sunCenterX + sunRadius * Math.cos(angle1);
-        var y1 = sunCenterY + sunRadius * Math.sin(angle1);
-        var x2 = sunCenterX + sunRadius * Math.cos(angle2);
-        var y2 = sunCenterY + sunRadius * Math.sin(angle2);
-        var ray = new Triangle(sunCenterX, sunCenterY, x1, y1, x2, y2, currentColor, 1.0);
-        sunTriangles.push(ray);
-    }
-    console.log('Created', sunTriangles.length, 'sun triangles');
+    // Convert sun radius to pixel size for Circle class (Circle expects size in pixels, not WebGL coords)
+    // Size slider affects sun size - map WebGL radius to pixel size
+    var sunRadiusWebGL = 0.05 + (sizeScale * 0.15);
+    var sunSizePixels = sunRadiusWebGL * 200.0; // Convert WebGL coords to approximate pixel size
+    // Ensure minimum segments for smoothness (at least 20, or use slider value if higher)
+    var sunSegments = Math.max(20, segments);
+    console.log('Sun center:', sunCenterX, sunCenterY, 'Sun size (pixels):', sunSizePixels, 'Sun segments:', sunSegments);
+    var sun = new Circle(sunCenterX, sunCenterY, currentColor, sunSizePixels, sunSegments);
+    console.log('Created sun circle');
     
     // Ground (2 triangles) - uses current color
     var ground1 = new Triangle(-1.0, -0.3, 1.0, -0.3, 1.0, -1.0, currentColor, 1.0);
@@ -365,7 +360,7 @@ function drawPicture() {
     
     // Add all shapes to the list
     shapesList.push(base1, base2, roof, door1, door2, winL1, winL2, winR1, winR2);
-    shapesList.push.apply(shapesList, sunTriangles);
+    shapesList.push(sun); // Add sun circle
     shapesList.push(ground1, ground2, mountain1, mountain2);
     
     console.log('Total shapes in list:', shapesList.length);
