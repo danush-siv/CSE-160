@@ -5,7 +5,8 @@ class Circle {
         this.y = y;
         this.color = color;
         this.radius = size / 200.0; // Scale size to WebGL coordinates
-        this.segments = segments || 20;
+        // Ensure minimum of 3 segments (triangle) - can't have fewer than 3 sides
+        this.segments = Math.max(3, segments || 20);
     }
     
     render() {

@@ -213,7 +213,9 @@ function click(ev) {
         shapesList.push(triangle);
         console.log('Created Triangle, shape type:', triangle.constructor.name);
     } else if (g_currentBrushType === 'circle') {
-        var circle = new Circle(x_webgl, y_webgl, g_color, g_size, g_segments);
+        // Ensure segments is at least 3 (minimum for a polygon)
+        var circleSegments = Math.max(3, g_segments);
+        var circle = new Circle(x_webgl, y_webgl, g_color, g_size, circleSegments);
         shapesList.push(circle);
         console.log('Created Circle, shape type:', circle.constructor.name);
         console.log('Circle properties - x:', circle.x, 'y:', circle.y, 'radius:', circle.radius, 'segments:', circle.segments);
