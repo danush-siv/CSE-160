@@ -33,6 +33,15 @@ var FSHADER_SOURCE = `
 `;
 
 function main() {
+    // Test WebGL support before attempting to create context
+    var testCanvas = document.createElement('canvas');
+    var testGl = testCanvas.getContext('webgl') || testCanvas.getContext('experimental-webgl');
+    if (!testGl) {
+        console.error('WebGL is not supported in this browser');
+        alert('WebGL is not supported in your browser. Please use Chrome, Firefox, or Edge.');
+        return;
+    }
+    
     if (!setupWebGL()) {
         return; // Exit if WebGL setup failed
     }
