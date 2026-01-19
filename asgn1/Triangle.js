@@ -1,3 +1,4 @@
+// Triangle class for drawing triangles on the canvas
 class Triangle {
     constructor(x1, y1, x2, y2, x3, y3, color, size) {
         // Check if third argument is an array (color) to determine constructor pattern

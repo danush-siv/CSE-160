@@ -1,3 +1,4 @@
+// Circle class for drawing circles on the canvas
 class Circle {
     constructor(x, y, color, size, segments) {
         this.x = x;

@@ -1,4 +1,4 @@
-// Global variables
+// Global variables for WebGL drawing application
 var gl;
 var canvas;
 var shapesList = [];
