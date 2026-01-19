@@ -276,29 +276,37 @@ function clearCanvas() {
 
 function drawPicture() {
     // This function draws a picture using triangles
-    // You should replace this with your own picture design
-    // The picture should use at least 20 triangles with various colors
+    // The picture uses the current slider values for color and size
     
-    // Clear existing shapes first (optional - remove this line if you want to keep user drawings)
-    // shapesList = [];
+    // Get current color from sliders
+    var red = document.getElementById('red-slider').value / 100.0;
+    var green = document.getElementById('green-slider').value / 100.0;
+    var blue = document.getElementById('blue-slider').value / 100.0;
+    var currentColor = [red, green, blue];
+    
+    // Get current size (scale it for picture elements)
+    var sizeScale = parseFloat(document.getElementById('size-slider').value) / 10.0;
+    
+    // Get current segments for circles
+    var segments = parseInt(document.getElementById('segments-slider').value);
     
     // Example: Draw a simple house scene using triangles
-    // House base (rectangle made of 2 triangles)
-    var houseColor = [0.8, 0.6, 0.4]; // Brown
+    // House base (rectangle made of 2 triangles) - use current color with slight variation
+    var houseColor = [currentColor[0] * 0.8, currentColor[1] * 0.6, currentColor[2] * 0.4];
     var base1 = new Triangle(-0.5, -0.3, 0.5, -0.3, 0.5, 0.0, houseColor, 1.0);
     var base2 = new Triangle(-0.5, -0.3, 0.5, 0.0, -0.5, 0.0, houseColor, 1.0);
     
-    // Roof (triangle)
-    var roofColor = [0.6, 0.2, 0.2]; // Dark red
+    // Roof (triangle) - darker version of current color
+    var roofColor = [currentColor[0] * 0.6, currentColor[1] * 0.2, currentColor[2] * 0.2];
     var roof = new Triangle(0.0, 0.3, -0.5, 0.0, 0.5, 0.0, roofColor, 1.0);
     
-    // Door (rectangle made of 2 triangles)
-    var doorColor = [0.4, 0.2, 0.1]; // Dark brown
+    // Door (rectangle made of 2 triangles) - very dark version
+    var doorColor = [currentColor[0] * 0.4, currentColor[1] * 0.2, currentColor[2] * 0.1];
     var door1 = new Triangle(-0.1, -0.3, 0.1, -0.3, 0.1, -0.1, doorColor, 1.0);
     var door2 = new Triangle(-0.1, -0.3, 0.1, -0.1, -0.1, -0.1, doorColor, 1.0);
     
-    // Windows (4 triangles each, 2 windows = 8 triangles)
-    var windowColor = [0.3, 0.5, 0.8]; // Blue
+    // Windows (4 triangles each, 2 windows = 8 triangles) - blue tint of current color
+    var windowColor = [currentColor[0] * 0.3, currentColor[1] * 0.5, currentColor[2] * 0.8];
     // Left window
     var winL1 = new Triangle(-0.4, -0.1, -0.3, -0.1, -0.3, 0.0, windowColor, 1.0);
     var winL2 = new Triangle(-0.4, -0.1, -0.3, 0.0, -0.4, 0.0, windowColor, 1.0);
@@ -306,15 +314,15 @@ function drawPicture() {
     var winR1 = new Triangle(0.3, -0.1, 0.4, -0.1, 0.4, 0.0, windowColor, 1.0);
     var winR2 = new Triangle(0.3, -0.1, 0.4, 0.0, 0.3, 0.0, windowColor, 1.0);
     
-    // Sun (multiple triangles for rays - 8 triangles)
-    var sunColor = [1.0, 0.9, 0.0]; // Yellow
+    // Sun (multiple triangles for rays) - yellow tint of current color, uses segment count
+    var sunColor = [currentColor[0] * 1.0, currentColor[1] * 0.9, currentColor[2] * 0.0];
     var sunCenterX = 0.7;
     var sunCenterY = 0.7;
-    var sunRadius = 0.15;
+    var sunRadius = 0.15 * sizeScale;
     var sunTriangles = [];
-    for (var i = 0; i < 8; i++) {
-        var angle1 = (i * 2 * Math.PI) / 8;
-        var angle2 = ((i + 1) * 2 * Math.PI) / 8;
+    for (var i = 0; i < segments; i++) {
+        var angle1 = (i * 2 * Math.PI) / segments;
+        var angle2 = ((i + 1) * 2 * Math.PI) / segments;
         var x1 = sunCenterX + sunRadius * Math.cos(angle1);
         var y1 = sunCenterY + sunRadius * Math.sin(angle1);
         var x2 = sunCenterX + sunRadius * Math.cos(angle2);
@@ -323,21 +331,20 @@ function drawPicture() {
         sunTriangles.push(ray);
     }
     
-    // Ground (2 triangles)
-    var groundColor = [0.2, 0.6, 0.2]; // Green
+    // Ground (2 triangles) - green tint of current color
+    var groundColor = [currentColor[0] * 0.2, currentColor[1] * 0.6, currentColor[2] * 0.2];
     var ground1 = new Triangle(-1.0, -0.3, 1.0, -0.3, 1.0, -1.0, groundColor, 1.0);
     var ground2 = new Triangle(-1.0, -0.3, 1.0, -1.0, -1.0, -1.0, groundColor, 1.0);
     
-    // Add all shapes to the list (total: 2 base + 1 roof + 2 door + 4 windows + 8 sun + 2 ground = 19 triangles)
-    // Let's add one more triangle to make it 20+
-    var cloudColor = [0.9, 0.9, 0.9]; // Light gray
-    var cloud1 = new Triangle(-0.8, 0.5, -0.7, 0.5, -0.75, 0.6, cloudColor, 1.0);
-    var cloud2 = new Triangle(-0.7, 0.5, -0.6, 0.5, -0.65, 0.6, cloudColor, 1.0);
+    // Mountains (2 triangles) - gray tint of current color
+    var mountainColor = [currentColor[0] * 0.9, currentColor[1] * 0.9, currentColor[2] * 0.9];
+    var mountain1 = new Triangle(-0.8, 0.3, -0.7, 0.5, -0.6, 0.3, mountainColor, 1.0);
+    var mountain2 = new Triangle(-0.6, 0.3, -0.5, 0.5, -0.4, 0.3, mountainColor, 1.0);
     
     // Add all shapes to the list
     shapesList.push(base1, base2, roof, door1, door2, winL1, winL2, winR1, winR2);
     shapesList.push.apply(shapesList, sunTriangles);
-    shapesList.push(ground1, ground2, cloud1, cloud2);
+    shapesList.push(ground1, ground2, mountain1, mountain2);
     
     renderAllShapes();
 }
