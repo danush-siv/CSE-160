@@ -33,15 +33,6 @@ var FSHADER_SOURCE = `
 `;
 
 function main() {
-    // Test WebGL support before attempting to create context
-    var testCanvas = document.createElement('canvas');
-    var testGl = testCanvas.getContext('webgl') || testCanvas.getContext('experimental-webgl');
-    if (!testGl) {
-        console.error('WebGL is not supported in this browser');
-        alert('WebGL is not supported in your browser. Please use Chrome, Firefox, or Edge.');
-        return;
-    }
-    
     if (!setupWebGL()) {
         return; // Exit if WebGL setup failed
     }
@@ -75,53 +66,21 @@ function setupWebGL() {
         return false;
     }
     
-    console.log('Canvas found:', canvas);
-    console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
+    // Get WebGL context with preserveDrawingBuffer for better performance
+    // Try 'webgl' first, then fallback to 'experimental-webgl'
+    gl = canvas.getContext('webgl', { preserveDrawingBuffer: true }) || 
+         canvas.getContext('experimental-webgl', { preserveDrawingBuffer: true });
     
-    // Try to get WebGL context - start simple, then add attributes
-    // First try: webgl with preserveDrawingBuffer (for performance)
-    gl = canvas.getContext('webgl', { preserveDrawingBuffer: true });
-    
-    // Second try: experimental-webgl with preserveDrawingBuffer
     if (!gl) {
-        console.log('Trying experimental-webgl with attributes...');
-        gl = canvas.getContext('experimental-webgl', { preserveDrawingBuffer: true });
-    }
-    
-    // Third try: webgl without attributes
-    if (!gl) {
-        console.log('Trying webgl without attributes...');
-        gl = canvas.getContext('webgl');
-    }
-    
-    // Fourth try: experimental-webgl without attributes
-    if (!gl) {
-        console.log('Trying experimental-webgl without attributes...');
-        gl = canvas.getContext('experimental-webgl');
+        // Try without attributes as fallback
+        gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
     }
     
     if (!gl) {
-        console.error('Unable to get WebGL context after all attempts.');
-        console.error('Canvas element:', canvas);
-        console.error('Canvas width:', canvas.width, 'height:', canvas.height);
-        console.error('Canvas style:', window.getComputedStyle(canvas).display);
-        
-        // Check if WebGL is available at all
-        var testCanvas = document.createElement('canvas');
-        var testGl = testCanvas.getContext('webgl') || testCanvas.getContext('experimental-webgl');
-        if (testGl) {
-            console.error('WebGL IS available, but failed on the actual canvas. This might be a canvas-specific issue.');
-            alert('WebGL is available but cannot be initialized on this canvas. Please check browser settings or try refreshing the page.');
-        } else {
-            console.error('WebGL is NOT available in this browser.');
-            alert('WebGL is not supported in your browser. Please enable hardware acceleration in Chrome settings.');
-        }
+        console.error('Unable to get WebGL context');
+        alert('WebGL is not supported in your browser. Please use a modern browser like Chrome, Firefox, or Edge.');
         return false;
     }
-    
-    console.log('WebGL context created successfully!');
-    console.log('WebGL version:', gl.getParameter(gl.VERSION));
-    console.log('WebGL vendor:', gl.getParameter(gl.VENDOR));
     
     // Set viewport to match canvas size
     gl.viewport(0, 0, canvas.width, canvas.height);
@@ -165,7 +124,6 @@ function connectVariablesToGLSL() {
 function initShaders() {
     // Check if WebGL context exists
     if (!gl) {
-        console.error('WebGL context not available in initShaders');
         return false;
     }
     
@@ -257,7 +215,6 @@ function click(ev) {
 
 function renderAllShapes() {
     if (!gl) {
-        console.error('WebGL context not available');
         return;
     }
     
@@ -375,9 +332,5 @@ function drawPicture() {
     shapesList.push.apply(shapesList, sunTriangles);
     shapesList.push(ground1, ground2, cloud1, cloud2);
     
-    console.log('Picture drawn with ' + shapesList.length + ' shapes');
-    console.log('First triangle:', base1);
-    
-    // Force a render
     renderAllShapes();
 }
