@@ -282,22 +282,37 @@ function drawPicture() {
     shapesList = [];
     
     // Get current color from sliders - this is the ONLY color source
-    var red = parseFloat(document.getElementById('red-slider').value) / 100.0;
-    var green = parseFloat(document.getElementById('green-slider').value) / 100.0;
-    var blue = parseFloat(document.getElementById('blue-slider').value) / 100.0;
+    var redSlider = document.getElementById('red-slider');
+    var greenSlider = document.getElementById('green-slider');
+    var blueSlider = document.getElementById('blue-slider');
+    
+    var red = parseFloat(redSlider.value) / 100.0;
+    var green = parseFloat(greenSlider.value) / 100.0;
+    var blue = parseFloat(blueSlider.value) / 100.0;
     var currentColor = [red, green, blue];
     
+    // Debug: log the slider values
+    console.log('RGB Sliders - Red:', redSlider.value, 'Green:', greenSlider.value, 'Blue:', blueSlider.value);
+    console.log('Current Color (0-1):', currentColor);
+    
     // Get current size - affects all elements
-    var currentSize = parseFloat(document.getElementById('size-slider').value);
+    var sizeSlider = document.getElementById('size-slider');
+    var currentSize = parseFloat(sizeSlider.value);
     var sizeScale = currentSize / 10.0; // Normalize size
+    console.log('Size Slider:', currentSize, 'Size Scale:', sizeScale);
     
     // Get current segments for circles/sun
-    var segments = parseInt(document.getElementById('segments-slider').value);
+    var segmentsSlider = document.getElementById('segments-slider');
+    var segments = parseInt(segmentsSlider.value);
+    console.log('Segments Slider:', segments);
     
     // Draw picture using ONLY slider values - no hardcoded colors
+    console.log('Creating triangles with color:', currentColor);
+    
     // House base (rectangle made of 2 triangles) - uses current color
     var base1 = new Triangle(-0.5, -0.3, 0.5, -0.3, 0.5, 0.0, currentColor, 1.0);
     var base2 = new Triangle(-0.5, -0.3, 0.5, 0.0, -0.5, 0.0, currentColor, 1.0);
+    console.log('Base1 color:', base1.color, 'Base2 color:', base2.color);
     
     // Roof (triangle) - uses current color
     var roof = new Triangle(0.0, 0.3, -0.5, 0.0, 0.5, 0.0, currentColor, 1.0);
@@ -318,6 +333,7 @@ function drawPicture() {
     var sunCenterX = 0.7;
     var sunCenterY = 0.7;
     var sunRadius = 0.05 + (sizeScale * 0.15); // Size slider affects sun size
+    console.log('Sun radius:', sunRadius, 'Sun segments:', segments);
     var sunTriangles = [];
     for (var i = 0; i < segments; i++) { // Segment slider affects sun smoothness
         var angle1 = (i * 2 * Math.PI) / segments;
@@ -329,6 +345,7 @@ function drawPicture() {
         var ray = new Triangle(sunCenterX, sunCenterY, x1, y1, x2, y2, currentColor, 1.0);
         sunTriangles.push(ray);
     }
+    console.log('Created', sunTriangles.length, 'sun triangles');
     
     // Ground (2 triangles) - uses current color
     var ground1 = new Triangle(-1.0, -0.3, 1.0, -0.3, 1.0, -1.0, currentColor, 1.0);
@@ -342,6 +359,9 @@ function drawPicture() {
     shapesList.push(base1, base2, roof, door1, door2, winL1, winL2, winR1, winR2);
     shapesList.push.apply(shapesList, sunTriangles);
     shapesList.push(ground1, ground2, mountain1, mountain2);
+    
+    console.log('Total shapes in list:', shapesList.length);
+    console.log('First shape color:', shapesList[0].color);
     
     renderAllShapes();
 }
