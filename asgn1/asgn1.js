@@ -278,10 +278,13 @@ function drawPicture() {
     // This function draws a picture using triangles
     // The picture uses the current slider values for color and size
     
+    // Clear existing shapes first
+    shapesList = [];
+    
     // Get current color from sliders
-    var red = document.getElementById('red-slider').value / 100.0;
-    var green = document.getElementById('green-slider').value / 100.0;
-    var blue = document.getElementById('blue-slider').value / 100.0;
+    var red = parseFloat(document.getElementById('red-slider').value) / 100.0;
+    var green = parseFloat(document.getElementById('green-slider').value) / 100.0;
+    var blue = parseFloat(document.getElementById('blue-slider').value) / 100.0;
     var currentColor = [red, green, blue];
     
     // Get current size (scale it for picture elements)
@@ -291,22 +294,22 @@ function drawPicture() {
     var segments = parseInt(document.getElementById('segments-slider').value);
     
     // Example: Draw a simple house scene using triangles
-    // House base (rectangle made of 2 triangles) - use current color with slight variation
-    var houseColor = [currentColor[0] * 0.8, currentColor[1] * 0.6, currentColor[2] * 0.4];
-    var base1 = new Triangle(-0.5, -0.3, 0.5, -0.3, 0.5, 0.0, houseColor, 1.0);
-    var base2 = new Triangle(-0.5, -0.3, 0.5, 0.0, -0.5, 0.0, houseColor, 1.0);
+    // Use current slider values directly for different elements
+    // House base (rectangle made of 2 triangles) - uses current color
+    var base1 = new Triangle(-0.5, -0.3, 0.5, -0.3, 0.5, 0.0, currentColor, 1.0);
+    var base2 = new Triangle(-0.5, -0.3, 0.5, 0.0, -0.5, 0.0, currentColor, 1.0);
     
-    // Roof (triangle) - darker version of current color
-    var roofColor = [currentColor[0] * 0.6, currentColor[1] * 0.2, currentColor[2] * 0.2];
+    // Roof (triangle) - inverted color for contrast
+    var roofColor = [1.0 - currentColor[0], 1.0 - currentColor[1], 1.0 - currentColor[2]];
     var roof = new Triangle(0.0, 0.3, -0.5, 0.0, 0.5, 0.0, roofColor, 1.0);
     
-    // Door (rectangle made of 2 triangles) - very dark version
-    var doorColor = [currentColor[0] * 0.4, currentColor[1] * 0.2, currentColor[2] * 0.1];
+    // Door (rectangle made of 2 triangles) - darker version
+    var doorColor = [currentColor[0] * 0.5, currentColor[1] * 0.5, currentColor[2] * 0.5];
     var door1 = new Triangle(-0.1, -0.3, 0.1, -0.3, 0.1, -0.1, doorColor, 1.0);
     var door2 = new Triangle(-0.1, -0.3, 0.1, -0.1, -0.1, -0.1, doorColor, 1.0);
     
-    // Windows (4 triangles each, 2 windows = 8 triangles) - blue tint of current color
-    var windowColor = [currentColor[0] * 0.3, currentColor[1] * 0.5, currentColor[2] * 0.8];
+    // Windows (4 triangles each, 2 windows = 8 triangles) - bright version
+    var windowColor = [Math.min(1.0, currentColor[0] + 0.3), Math.min(1.0, currentColor[1] + 0.3), Math.min(1.0, currentColor[2] + 0.3)];
     // Left window
     var winL1 = new Triangle(-0.4, -0.1, -0.3, -0.1, -0.3, 0.0, windowColor, 1.0);
     var winL2 = new Triangle(-0.4, -0.1, -0.3, 0.0, -0.4, 0.0, windowColor, 1.0);
@@ -314,11 +317,11 @@ function drawPicture() {
     var winR1 = new Triangle(0.3, -0.1, 0.4, -0.1, 0.4, 0.0, windowColor, 1.0);
     var winR2 = new Triangle(0.3, -0.1, 0.4, 0.0, 0.3, 0.0, windowColor, 1.0);
     
-    // Sun (multiple triangles for rays) - yellow tint of current color, uses segment count
-    var sunColor = [currentColor[0] * 1.0, currentColor[1] * 0.9, currentColor[2] * 0.0];
+    // Sun (multiple triangles for rays) - uses current color directly, segment count affects smoothness
+    var sunColor = currentColor;
     var sunCenterX = 0.7;
     var sunCenterY = 0.7;
-    var sunRadius = 0.15 * sizeScale;
+    var sunRadius = 0.1 + (sizeScale * 0.1); // Size affects sun radius
     var sunTriangles = [];
     for (var i = 0; i < segments; i++) {
         var angle1 = (i * 2 * Math.PI) / segments;
@@ -331,13 +334,13 @@ function drawPicture() {
         sunTriangles.push(ray);
     }
     
-    // Ground (2 triangles) - green tint of current color
-    var groundColor = [currentColor[0] * 0.2, currentColor[1] * 0.6, currentColor[2] * 0.2];
+    // Ground (2 triangles) - uses current color with green shift
+    var groundColor = [currentColor[0] * 0.3, currentColor[1], currentColor[2] * 0.3];
     var ground1 = new Triangle(-1.0, -0.3, 1.0, -0.3, 1.0, -1.0, groundColor, 1.0);
     var ground2 = new Triangle(-1.0, -0.3, 1.0, -1.0, -1.0, -1.0, groundColor, 1.0);
     
-    // Mountains (2 triangles) - gray tint of current color
-    var mountainColor = [currentColor[0] * 0.9, currentColor[1] * 0.9, currentColor[2] * 0.9];
+    // Mountains (2 triangles) - uses current color
+    var mountainColor = currentColor;
     var mountain1 = new Triangle(-0.8, 0.3, -0.7, 0.5, -0.6, 0.3, mountainColor, 1.0);
     var mountain2 = new Triangle(-0.6, 0.3, -0.5, 0.5, -0.4, 0.3, mountainColor, 1.0);
     
