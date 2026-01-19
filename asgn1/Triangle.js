@@ -12,10 +12,6 @@ class Triangle {
             this.x3 = x3;
             this.y3 = y3;
             this.color = color;
-            // Debug: log color assignment
-            if (typeof color !== 'undefined' && color !== null) {
-                console.log('Triangle 8-arg constructor - Color received:', color, 'Stored as:', this.color);
-            }
         } else if (arguments.length === 4 && Array.isArray(x2)) {
             // Default triangle centered at (x, y) with color and size
             // Arguments: (x, y, color, size)

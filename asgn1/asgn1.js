@@ -200,27 +200,19 @@ function click(ev) {
     var y_webgl = -((y / canvas.height) * 2 - 1);
     
     // Create shape based on current brush type
-    console.log('Click - Current brush type:', g_currentBrushType, 'Type is:', typeof g_currentBrushType);
-    console.log('g_color:', g_color, 'g_size:', g_size, 'g_segments:', g_segments);
-    
     if (g_currentBrushType === 'point') {
         var point = new Point(x_webgl, y_webgl, g_color, g_size);
         shapesList.push(point);
-        console.log('Created Point, shape type:', point.constructor.name);
     } else if (g_currentBrushType === 'triangle') {
         // Triangle constructor: (x, y, color, size) - 4 args for default triangle
         var triangle = new Triangle(x_webgl, y_webgl, g_color, g_size);
         shapesList.push(triangle);
-        console.log('Created Triangle, shape type:', triangle.constructor.name);
     } else if (g_currentBrushType === 'circle') {
         // Ensure segments is at least 3 (minimum for a polygon)
         var circleSegments = Math.max(3, g_segments);
         var circle = new Circle(x_webgl, y_webgl, g_color, g_size, circleSegments);
         shapesList.push(circle);
-        console.log('Created Circle, shape type:', circle.constructor.name);
-        console.log('Circle properties - x:', circle.x, 'y:', circle.y, 'radius:', circle.radius, 'segments:', circle.segments);
     } else {
-        console.error('Unknown brush type:', g_currentBrushType, 'Type:', typeof g_currentBrushType);
         // Default to point if unknown
         var point = new Point(x_webgl, y_webgl, g_color, g_size);
         shapesList.push(point);
@@ -251,14 +243,7 @@ function renderAllShapes() {
 }
 
 function setBrushType(type) {
-    // Ensure type is a valid string
-    if (typeof type !== 'string') {
-        console.error('Invalid brush type:', type);
-        return;
-    }
-    
     g_currentBrushType = type;
-    console.log('Brush type set to:', g_currentBrushType, 'Type is:', typeof g_currentBrushType);
     
     // Update button styles
     document.getElementById('point-button').classList.remove('active');
@@ -271,8 +256,6 @@ function setBrushType(type) {
         document.getElementById('triangle-button').classList.add('active');
     } else if (type === 'circle') {
         document.getElementById('circle-button').classList.add('active');
-    } else {
-        console.error('Unknown brush type in setBrushType:', type);
     }
 }
 
@@ -282,7 +265,6 @@ function updateColor() {
     var blue = parseFloat(document.getElementById('blue-slider').value) / 100.0;
     
     g_color = [red, green, blue];
-    console.log('updateColor called - g_color set to:', g_color);
 }
 
 function updateSize() {
@@ -315,28 +297,19 @@ function drawPicture() {
     var blue = parseFloat(blueSlider.value) / 100.0;
     var currentColor = [red, green, blue];
     
-    // Debug: log the slider values
-    console.log('RGB Sliders - Red:', redSlider.value, 'Green:', greenSlider.value, 'Blue:', blueSlider.value);
-    console.log('Current Color (0-1):', currentColor);
-    
     // Get current size - affects all elements
     var sizeSlider = document.getElementById('size-slider');
     var currentSize = parseFloat(sizeSlider.value);
     var sizeScale = currentSize / 10.0; // Normalize size
-    console.log('Size Slider:', currentSize, 'Size Scale:', sizeScale);
     
     // Get current segments for circles/sun
     var segmentsSlider = document.getElementById('segments-slider');
     var segments = parseInt(segmentsSlider.value);
-    console.log('Segments Slider:', segments);
     
     // Draw picture using ONLY slider values - no hardcoded colors
-    console.log('Creating triangles with color:', currentColor);
-    
     // House base (rectangle made of 2 triangles) - uses current color
     var base1 = new Triangle(-0.5, -0.3, 0.5, -0.3, 0.5, 0.0, currentColor, 1.0);
     var base2 = new Triangle(-0.5, -0.3, 0.5, 0.0, -0.5, 0.0, currentColor, 1.0);
-    console.log('Base1 color:', base1.color, 'Base2 color:', base2.color);
     
     // Roof (triangle) - uses current color
     var roof = new Triangle(0.0, 0.3, -0.5, 0.0, 0.5, 0.0, currentColor, 1.0);
@@ -362,9 +335,7 @@ function drawPicture() {
     var sunSizePixels = sunRadiusWebGL * 200.0; // Convert WebGL coords to approximate pixel size
     // Ensure minimum segments for smoothness (at least 30 for a smooth circle, or use slider value if higher)
     var sunSegments = Math.max(30, segments);
-    console.log('Sun center:', sunCenterX, sunCenterY, 'Sun size (pixels):', sunSizePixels, 'Sun segments:', sunSegments);
     var sun = new Circle(sunCenterX, sunCenterY, currentColor, sunSizePixels, sunSegments);
-    console.log('Created sun as Circle with', sunSegments, 'segments');
     
     // Ground (2 triangles) - uses current color
     var ground1 = new Triangle(-1.0, -0.3, 1.0, -0.3, 1.0, -1.0, currentColor, 1.0);
@@ -378,9 +349,6 @@ function drawPicture() {
     shapesList.push(base1, base2, roof, door1, door2, winL1, winL2, winR1, winR2);
     shapesList.push(sun); // Add sun circle
     shapesList.push(ground1, ground2, mountain1, mountain2);
-    
-    console.log('Total shapes in list:', shapesList.length);
-    console.log('First shape color:', shapesList[0].color);
     
     renderAllShapes();
 }
