@@ -97,6 +97,7 @@
         <h1>ASG1 - Interactive Drawing</h1>
         <p><strong>Name:</strong> Danush Sivarajan</p>
         <p><strong>Email:</strong> dsivaraj@ucsc.edu</p>
+        <p><strong>ID:</strong> 1932047</p>
     </div>
     
     <button onclick="clearCanvas()">Clear Canvas</button>
@@ -136,6 +137,18 @@
                 <label><strong>Shape Size:</strong> <input type="range" id="size-slider" min="1" max="50" value="1" oninput="updateSize()"></label>
             </div>
             <label><strong>(Circles) Segment Count:</strong> <input type="range" id="segments-slider" min="3" max="50" value="3" oninput="updateSegments()"></label>
+        </div>
+        
+        <div class="control-row">
+            <div style="margin-top: 20px; padding: 15px; background-color: #f5f5f5; border-radius: 5px; max-width: 800px;">
+                <h3 style="margin-top: 0;">What You're Looking At:</h3>
+                <ol style="margin: 10px 0; padding-left: 20px;">
+                    <li><strong>Canvas:</strong> The white drawing area on the left where you can create your own artwork.</li>
+                    <li><strong>Danush's Drawing:</strong> The image on the right shows a hand-drawn picture that was created on graph paper.</li>
+                    <li><strong>Your Choice:</strong> You can try to recreate Danush's drawing using the drawing tools, or just have fun creating your own art on the canvas!</li>
+                </ol>
+                <p style="margin: 10px 0 0 0;"><strong>How to Draw:</strong> Select a shape type (Squares, Triangles, or Circles), adjust the color and size using the sliders, then click and drag on the canvas to draw.</p>
+            </div>
         </div>
         
     </div>
