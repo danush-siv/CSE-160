@@ -64,6 +64,9 @@ function setupWebGL() {
         return;
     }
     
+    // Set viewport to match canvas size
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    
     // Set clear color to white
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -189,7 +192,9 @@ function renderAllShapes() {
     
     // Render all shapes
     for (var i = 0; i < shapesList.length; i++) {
-        shapesList[i].render();
+        if (shapesList[i] && typeof shapesList[i].render === 'function') {
+            shapesList[i].render();
+        }
     }
 }
 
@@ -236,6 +241,9 @@ function drawPicture() {
     // You should replace this with your own picture design
     // The picture should use at least 20 triangles with various colors
     
+    // Clear existing shapes first (optional - remove this line if you want to keep user drawings)
+    // shapesList = [];
+    
     // Example: Draw a simple house scene using triangles
     // House base (rectangle made of 2 triangles)
     var houseColor = [0.8, 0.6, 0.4]; // Brown
@@ -260,11 +268,12 @@ function drawPicture() {
     var winR1 = new Triangle(0.3, -0.1, 0.4, -0.1, 0.4, 0.0, windowColor, 1.0);
     var winR2 = new Triangle(0.3, -0.1, 0.4, 0.0, 0.3, 0.0, windowColor, 1.0);
     
-    // Sun (multiple triangles for rays)
+    // Sun (multiple triangles for rays - 8 triangles)
     var sunColor = [1.0, 0.9, 0.0]; // Yellow
     var sunCenterX = 0.7;
     var sunCenterY = 0.7;
     var sunRadius = 0.15;
+    var sunTriangles = [];
     for (var i = 0; i < 8; i++) {
         var angle1 = (i * 2 * Math.PI) / 8;
         var angle2 = ((i + 1) * 2 * Math.PI) / 8;
@@ -273,7 +282,7 @@ function drawPicture() {
         var x2 = sunCenterX + sunRadius * Math.cos(angle2);
         var y2 = sunCenterY + sunRadius * Math.sin(angle2);
         var ray = new Triangle(sunCenterX, sunCenterY, x1, y1, x2, y2, sunColor, 1.0);
-        shapesList.push(ray);
+        sunTriangles.push(ray);
     }
     
     // Ground (2 triangles)
@@ -281,8 +290,20 @@ function drawPicture() {
     var ground1 = new Triangle(-1.0, -0.3, 1.0, -0.3, 1.0, -1.0, groundColor, 1.0);
     var ground2 = new Triangle(-1.0, -0.3, 1.0, -1.0, -1.0, -1.0, groundColor, 1.0);
     
-    // Add all shapes to the list
-    shapesList.push(base1, base2, roof, door1, door2, winL1, winL2, winR1, winR2, ground1, ground2);
+    // Add all shapes to the list (total: 2 base + 1 roof + 2 door + 4 windows + 8 sun + 2 ground = 19 triangles)
+    // Let's add one more triangle to make it 20+
+    var cloudColor = [0.9, 0.9, 0.9]; // Light gray
+    var cloud1 = new Triangle(-0.8, 0.5, -0.7, 0.5, -0.75, 0.6, cloudColor, 1.0);
+    var cloud2 = new Triangle(-0.7, 0.5, -0.6, 0.5, -0.65, 0.6, cloudColor, 1.0);
     
+    // Add all shapes to the list
+    shapesList.push(base1, base2, roof, door1, door2, winL1, winL2, winR1, winR2);
+    shapesList.push.apply(shapesList, sunTriangles);
+    shapesList.push(ground1, ground2, cloud1, cloud2);
+    
+    console.log('Picture drawn with ' + shapesList.length + ' shapes');
+    console.log('First triangle:', base1);
+    
+    // Force a render
     renderAllShapes();
 }
