@@ -33,8 +33,13 @@ var FSHADER_SOURCE = `
 `;
 
 function main() {
-    setupWebGL();
-    connectVariablesToGLSL();
+    if (!setupWebGL()) {
+        return; // Exit if WebGL setup failed
+    }
+    
+    if (!connectVariablesToGLSL()) {
+        return; // Exit if shader setup failed
+    }
     
     // Set canvas event listeners
     canvas.onmousedown = click;
@@ -56,12 +61,20 @@ function main() {
 function setupWebGL() {
     // Retrieve <canvas> element
     canvas = document.getElementById('gl-canvas');
+    if (!canvas) {
+        console.error('Canvas element not found');
+        return false;
+    }
     
     // Get WebGL context with preserveDrawingBuffer for better performance
-    gl = canvas.getContext('webgl', { preserveDrawingBuffer: true });
+    // Try 'webgl' first, then fallback to 'experimental-webgl'
+    gl = canvas.getContext('webgl', { preserveDrawingBuffer: true }) || 
+         canvas.getContext('experimental-webgl', { preserveDrawingBuffer: true });
+    
     if (!gl) {
-        console.error('Unable to get WebGL context');
-        return;
+        console.error('Unable to get WebGL context. Your browser may not support WebGL.');
+        alert('WebGL is not supported in your browser. Please use a modern browser like Chrome, Firefox, or Edge.');
+        return false;
     }
     
     // Set viewport to match canvas size
@@ -70,33 +83,37 @@ function setupWebGL() {
     // Set clear color to white
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
+    
+    return true;
 }
 
 function connectVariablesToGLSL() {
     // Create shader program
     if (!initShaders()) {
         console.error('Failed to initialize shaders');
-        return;
+        return false;
     }
     
     // Get storage locations of attribute and uniform variables
     a_Position = gl.getAttribLocation(g_shaderProgram, 'a_Position');
     if (a_Position < 0) {
         console.error('Failed to get storage location of a_Position');
-        return;
+        return false;
     }
     
     u_FragColor = gl.getUniformLocation(g_shaderProgram, 'u_FragColor');
     if (!u_FragColor) {
         console.error('Failed to get storage location of u_FragColor');
-        return;
+        return false;
     }
     
     u_PointSize = gl.getUniformLocation(g_shaderProgram, 'u_PointSize');
     if (!u_PointSize) {
         console.error('Failed to get storage location of u_PointSize');
-        return;
+        return false;
     }
+    
+    return true;
 }
 
 function initShaders() {
@@ -187,6 +204,11 @@ function click(ev) {
 }
 
 function renderAllShapes() {
+    if (!gl) {
+        console.error('WebGL context not available');
+        return;
+    }
+    
     // Clear canvas
     gl.clear(gl.COLOR_BUFFER_BIT);
     
