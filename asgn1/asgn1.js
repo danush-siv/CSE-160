@@ -344,11 +344,11 @@ function drawPicture() {
     // Size slider affects sun size - map WebGL radius to pixel size
     var sunRadiusWebGL = 0.05 + (sizeScale * 0.15);
     var sunSizePixels = sunRadiusWebGL * 200.0; // Convert WebGL coords to approximate pixel size
-    // Ensure minimum segments for smoothness (at least 20, or use slider value if higher)
-    var sunSegments = Math.max(20, segments);
+    // Ensure minimum segments for smoothness (at least 30 for a smooth circle, or use slider value if higher)
+    var sunSegments = Math.max(30, segments);
     console.log('Sun center:', sunCenterX, sunCenterY, 'Sun size (pixels):', sunSizePixels, 'Sun segments:', sunSegments);
     var sun = new Circle(sunCenterX, sunCenterY, currentColor, sunSizePixels, sunSegments);
-    console.log('Created sun circle');
+    console.log('Created sun as Circle with', sunSegments, 'segments');
     
     // Ground (2 triangles) - uses current color
     var ground1 = new Triangle(-1.0, -0.3, 1.0, -0.3, 1.0, -1.0, currentColor, 1.0);
