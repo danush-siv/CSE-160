@@ -276,73 +276,67 @@ function clearCanvas() {
 
 function drawPicture() {
     // This function draws a picture using triangles
-    // The picture uses the current slider values for color and size
+    // The picture uses ONLY the current slider values - no hardcoded colors
     
     // Clear existing shapes first
     shapesList = [];
     
-    // Get current color from sliders
+    // Get current color from sliders - this is the ONLY color source
     var red = parseFloat(document.getElementById('red-slider').value) / 100.0;
     var green = parseFloat(document.getElementById('green-slider').value) / 100.0;
     var blue = parseFloat(document.getElementById('blue-slider').value) / 100.0;
     var currentColor = [red, green, blue];
     
-    // Get current size (scale it for picture elements)
-    var sizeScale = parseFloat(document.getElementById('size-slider').value) / 10.0;
+    // Get current size - affects all elements
+    var currentSize = parseFloat(document.getElementById('size-slider').value);
+    var sizeScale = currentSize / 10.0; // Normalize size
     
-    // Get current segments for circles
+    // Get current segments for circles/sun
     var segments = parseInt(document.getElementById('segments-slider').value);
     
-    // Example: Draw a simple house scene using triangles
-    // Use current slider values directly for different elements
+    // Draw picture using ONLY slider values - no hardcoded colors
     // House base (rectangle made of 2 triangles) - uses current color
     var base1 = new Triangle(-0.5, -0.3, 0.5, -0.3, 0.5, 0.0, currentColor, 1.0);
     var base2 = new Triangle(-0.5, -0.3, 0.5, 0.0, -0.5, 0.0, currentColor, 1.0);
     
-    // Roof (triangle) - inverted color for contrast
-    var roofColor = [1.0 - currentColor[0], 1.0 - currentColor[1], 1.0 - currentColor[2]];
-    var roof = new Triangle(0.0, 0.3, -0.5, 0.0, 0.5, 0.0, roofColor, 1.0);
+    // Roof (triangle) - uses current color
+    var roof = new Triangle(0.0, 0.3, -0.5, 0.0, 0.5, 0.0, currentColor, 1.0);
     
-    // Door (rectangle made of 2 triangles) - darker version
-    var doorColor = [currentColor[0] * 0.5, currentColor[1] * 0.5, currentColor[2] * 0.5];
-    var door1 = new Triangle(-0.1, -0.3, 0.1, -0.3, 0.1, -0.1, doorColor, 1.0);
-    var door2 = new Triangle(-0.1, -0.3, 0.1, -0.1, -0.1, -0.1, doorColor, 1.0);
+    // Door (rectangle made of 2 triangles) - uses current color
+    var door1 = new Triangle(-0.1, -0.3, 0.1, -0.3, 0.1, -0.1, currentColor, 1.0);
+    var door2 = new Triangle(-0.1, -0.3, 0.1, -0.1, -0.1, -0.1, currentColor, 1.0);
     
-    // Windows (4 triangles each, 2 windows = 8 triangles) - bright version
-    var windowColor = [Math.min(1.0, currentColor[0] + 0.3), Math.min(1.0, currentColor[1] + 0.3), Math.min(1.0, currentColor[2] + 0.3)];
+    // Windows (4 triangles each, 2 windows = 8 triangles) - uses current color
     // Left window
-    var winL1 = new Triangle(-0.4, -0.1, -0.3, -0.1, -0.3, 0.0, windowColor, 1.0);
-    var winL2 = new Triangle(-0.4, -0.1, -0.3, 0.0, -0.4, 0.0, windowColor, 1.0);
+    var winL1 = new Triangle(-0.4, -0.1, -0.3, -0.1, -0.3, 0.0, currentColor, 1.0);
+    var winL2 = new Triangle(-0.4, -0.1, -0.3, 0.0, -0.4, 0.0, currentColor, 1.0);
     // Right window
-    var winR1 = new Triangle(0.3, -0.1, 0.4, -0.1, 0.4, 0.0, windowColor, 1.0);
-    var winR2 = new Triangle(0.3, -0.1, 0.4, 0.0, 0.3, 0.0, windowColor, 1.0);
+    var winR1 = new Triangle(0.3, -0.1, 0.4, -0.1, 0.4, 0.0, currentColor, 1.0);
+    var winR2 = new Triangle(0.3, -0.1, 0.4, 0.0, 0.3, 0.0, currentColor, 1.0);
     
-    // Sun (multiple triangles for rays) - uses current color directly, segment count affects smoothness
-    var sunColor = currentColor;
+    // Sun (multiple triangles) - uses current color and segment count, size affects radius
     var sunCenterX = 0.7;
     var sunCenterY = 0.7;
-    var sunRadius = 0.1 + (sizeScale * 0.1); // Size affects sun radius
+    var sunRadius = 0.05 + (sizeScale * 0.15); // Size slider affects sun size
     var sunTriangles = [];
-    for (var i = 0; i < segments; i++) {
+    for (var i = 0; i < segments; i++) { // Segment slider affects sun smoothness
         var angle1 = (i * 2 * Math.PI) / segments;
         var angle2 = ((i + 1) * 2 * Math.PI) / segments;
         var x1 = sunCenterX + sunRadius * Math.cos(angle1);
         var y1 = sunCenterY + sunRadius * Math.sin(angle1);
         var x2 = sunCenterX + sunRadius * Math.cos(angle2);
         var y2 = sunCenterY + sunRadius * Math.sin(angle2);
-        var ray = new Triangle(sunCenterX, sunCenterY, x1, y1, x2, y2, sunColor, 1.0);
+        var ray = new Triangle(sunCenterX, sunCenterY, x1, y1, x2, y2, currentColor, 1.0);
         sunTriangles.push(ray);
     }
     
-    // Ground (2 triangles) - uses current color with green shift
-    var groundColor = [currentColor[0] * 0.3, currentColor[1], currentColor[2] * 0.3];
-    var ground1 = new Triangle(-1.0, -0.3, 1.0, -0.3, 1.0, -1.0, groundColor, 1.0);
-    var ground2 = new Triangle(-1.0, -0.3, 1.0, -1.0, -1.0, -1.0, groundColor, 1.0);
+    // Ground (2 triangles) - uses current color
+    var ground1 = new Triangle(-1.0, -0.3, 1.0, -0.3, 1.0, -1.0, currentColor, 1.0);
+    var ground2 = new Triangle(-1.0, -0.3, 1.0, -1.0, -1.0, -1.0, currentColor, 1.0);
     
     // Mountains (2 triangles) - uses current color
-    var mountainColor = currentColor;
-    var mountain1 = new Triangle(-0.8, 0.3, -0.7, 0.5, -0.6, 0.3, mountainColor, 1.0);
-    var mountain2 = new Triangle(-0.6, 0.3, -0.5, 0.5, -0.4, 0.3, mountainColor, 1.0);
+    var mountain1 = new Triangle(-0.8, 0.3, -0.7, 0.5, -0.6, 0.3, currentColor, 1.0);
+    var mountain2 = new Triangle(-0.6, 0.3, -0.5, 0.5, -0.4, 0.3, currentColor, 1.0);
     
     // Add all shapes to the list
     shapesList.push(base1, base2, roof, door1, door2, winL1, winL2, winR1, winR2);
