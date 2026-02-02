@@ -410,61 +410,70 @@ function renderAllShapes() {
 	muzzle.matrix.translate(-0.5, -0.5, -0.5);
 	muzzle.render();
 
-	// Nose (dark brown)
-	const nose = new Cube();
-	nose.color = [0.22, 0.16, 0.12, 1];
+	// Nose: black triangle (pyramid), base up / point down on muzzle
+	const nose = new Pyramid();
+	nose.color = [0.06, 0.06, 0.06, 1];
 	nose.matrix = new Matrix4(headCoordsMatrix);
-	nose.matrix.translate(0, -0.12, 0.42);
-	nose.matrix.scale(0.12, 0.1, 0.08);
+	nose.matrix.translate(0.08, -0.14, 0.38);
+	nose.matrix.rotate(180, 1, 0, 0);
+	nose.matrix.scale(0.1, 0.08, 0.08);
 	nose.matrix.translate(-0.5, -0.5, -0.5);
 	nose.render();
 
-	// Eyes (amber with dark center — lion style)
+	// Eyes: centered on face (symmetric, same y), amber with pupils
+	const eyeY = 0.2;
+	const eyeZ = -0.02;
+	const eyeLeftX = 0.14;
+	const eyeRightX = 0.38;
 	const eye_left = new Cube();
 	eye_left.color = [0.92, 0.68, 0.2, 1];
 	eye_left.matrix = new Matrix4(headCoordsMatrix);
-	eye_left.matrix.translate(0.12, 0.02, -0.02);
-	eye_left.matrix.scale(0.14, 0.12, 0.06);
+	eye_left.matrix.translate(eyeLeftX, eyeY, eyeZ);
+	eye_left.matrix.scale(0.12, 0.1, 0.05);
 	eye_left.matrix.translate(-0.5, -0.5, -0.5);
 	eye_left.render();
 
 	const eye_right = new Cube();
 	eye_right.color = [0.92, 0.68, 0.2, 1];
 	eye_right.matrix = new Matrix4(headCoordsMatrix);
-	eye_right.matrix.translate(-0.26, 0.02, -0.02);
-	eye_right.matrix.scale(0.14, 0.12, 0.06);
+	eye_right.matrix.translate(eyeRightX, eyeY, eyeZ);
+	eye_right.matrix.scale(0.12, 0.1, 0.05);
 	eye_right.matrix.translate(-0.5, -0.5, -0.5);
 	eye_right.render();
 
-	// Pupils (small black)
 	const pupil_left = new Cube();
-	pupil_left.color = [0.05, 0.05, 0.05, 1];
+	pupil_left.color = [0.04, 0.04, 0.04, 1];
 	pupil_left.matrix = new Matrix4(headCoordsMatrix);
-	pupil_left.matrix.translate(0.14, 0.02, -0.035);
-	pupil_left.matrix.scale(0.05, 0.05, 0.02);
+	pupil_left.matrix.translate(eyeLeftX + 0.02, eyeY, eyeZ - 0.015);
+	pupil_left.matrix.scale(0.04, 0.04, 0.02);
 	pupil_left.matrix.translate(-0.5, -0.5, -0.5);
 	pupil_left.render();
 
 	const pupil_right = new Cube();
-	pupil_right.color = [0.05, 0.05, 0.05, 1];
+	pupil_right.color = [0.04, 0.04, 0.04, 1];
 	pupil_right.matrix = new Matrix4(headCoordsMatrix);
-	pupil_right.matrix.translate(-0.28, 0.02, -0.035);
-	pupil_right.matrix.scale(0.05, 0.05, 0.02);
+	pupil_right.matrix.translate(eyeRightX - 0.02, eyeY, eyeZ - 0.015);
+	pupil_right.matrix.scale(0.04, 0.04, 0.02);
 	pupil_right.matrix.translate(-0.5, -0.5, -0.5);
 	pupil_right.render();
 
-	// --- Mane: ring of cubes around the head (sides, top, back) ---
-	const maneOffsets = [
-		[-0.32, 0.18, 0], [0.32, 0.18, 0],
-		[-0.28, 0.28, -0.1], [0.28, 0.28, -0.1], [0, 0.32, -0.05],
-		[-0.22, 0.12, 0.2], [0.22, 0.12, 0.2], [0, 0.2, 0.22]
+	// --- Mane: darker brown box around the head cube (frame on all sides) ---
+	const maneDarkBrown = [0.38, 0.22, 0.08, 1];
+	// Head in headCoords is 0.52 x 0.52 x 0.48 from (0,0,0) to (0.52, 0.52, 0.48). Frame just outside.
+	const maneFrame = [
+		[-0.1, 0.1, 0.1], [-0.1, 0.1, 0.4], [-0.1, 0.42, 0.1], [-0.1, 0.42, 0.4],
+		[0.62, 0.1, 0.1], [0.62, 0.1, 0.4], [0.62, 0.42, 0.1], [0.62, 0.42, 0.4],
+		[0.1, 0.62, 0.1], [0.42, 0.62, 0.1], [0.1, 0.62, 0.4], [0.42, 0.62, 0.4],
+		[0.1, -0.1, 0.1], [0.42, -0.1, 0.1], [0.1, -0.1, 0.4], [0.42, -0.1, 0.4],
+		[0.1, 0.1, 0.56], [0.42, 0.1, 0.56], [0.1, 0.42, 0.56], [0.42, 0.42, 0.56],
+		[0.1, 0.1, -0.08], [0.42, 0.1, -0.08], [0.1, 0.42, -0.08], [0.42, 0.42, -0.08]
 	];
-	for (let i = 0; i < maneOffsets.length; i++) {
+	for (let i = 0; i < maneFrame.length; i++) {
 		const m = new Cube();
-		m.color = (i % 2 === 0) ? maneColor : maneColorLight;
+		m.color = maneDarkBrown;
 		m.matrix = new Matrix4(headCoordsMatrix);
-		m.matrix.translate(maneOffsets[i][0], maneOffsets[i][1], maneOffsets[i][2]);
-		m.matrix.scale(0.18, 0.18, 0.18);
+		m.matrix.translate(maneFrame[i][0], maneFrame[i][1], maneFrame[i][2]);
+		m.matrix.scale(0.16, 0.16, 0.16);
 		m.matrix.translate(-0.5, -0.5, -0.5);
 		m.render();
 	}
