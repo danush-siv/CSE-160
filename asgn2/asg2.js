@@ -1,5 +1,5 @@
 /**
- * CSE 160 Assignment 2 — 3D Blocky Creature
+ * CSE 160 Assignment 2 — 3D Blocky Lion
  * Danush Sivarajan
  * dsivaraj@ucsc.edu
  * 1932047
@@ -305,133 +305,190 @@ function renderAllShapes() {
 
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+	// Lion body color: tan/sandy
+	const lionTan = [0.82, 0.65, 0.45, 1];
+	const lionTanDark = [0.72, 0.55, 0.38, 1];
+	const maneColor = [0.68, 0.42, 0.18, 1];
+	const maneColorLight = [0.78, 0.5, 0.22, 1];
+
 	// --- Body (root) ---
 	const body = new Cube();
-	body.color = [1, 0, 0.8, 1];
+	body.color = lionTan;
 	body.matrix.translate(-0.25, -0.25, 0);
 	body.matrix.scale(0.5, 0.5, 1);
 	body.render();
 
-	// --- Legs (each attached to body; one joint per leg) ---
+	// --- Legs (one joint per leg, same tan as body) ---
 	const leg_front_left = new Cube();
-	leg_front_left.color = [1, 0.2, 0.8, 1];
+	leg_front_left.color = lionTanDark;
 	leg_front_left.matrix.translate(0.15, -0.2, 0.2);
 	leg_front_left.matrix.rotate(-g_leg_front_leftRotation, 1, 0, 0);
-	leg_front_left.matrix.scale(0.2, 0.3, 0.2);
+	leg_front_left.matrix.scale(0.22, 0.32, 0.22);
 	leg_front_left.matrix.translate(-0.5, -1, -0.5);
 	leg_front_left.render();
 
 	const leg_front_right = new Cube();
-	leg_front_right.color = [1, 0.2, 0.8, 1];
+	leg_front_right.color = lionTanDark;
 	leg_front_right.matrix.translate(-0.15, -0.2, 0.2);
 	leg_front_right.matrix.rotate(-g_leg_front_rightRotation, 1, 0, 0);
-	leg_front_right.matrix.scale(0.2, 0.3, 0.2);
+	leg_front_right.matrix.scale(0.22, 0.32, 0.22);
 	leg_front_right.matrix.translate(-0.5, -1, -0.5);
 	leg_front_right.render();
 
 	const leg_back_left = new Cube();
-	leg_back_left.color = [1, 0.2, 0.8, 1];
+	leg_back_left.color = lionTanDark;
 	leg_back_left.matrix.translate(0.15, -0.2, 0.95);
 	leg_back_left.matrix.rotate(-g_leg_back_leftRotation, 1, 0, 0);
-	leg_back_left.matrix.scale(0.2, 0.3, 0.2);
+	leg_back_left.matrix.scale(0.22, 0.32, 0.22);
 	leg_back_left.matrix.translate(-0.5, -1, -0.5);
 	leg_back_left.render();
 
 	const leg_back_right = new Cube();
-	leg_back_right.color = [1, 0.2, 0.8, 1];
+	leg_back_right.color = lionTanDark;
 	leg_back_right.matrix.translate(-0.15, -0.2, 0.95);
 	leg_back_right.matrix.rotate(-g_leg_back_rightRotation, 1, 0, 0);
-	leg_back_right.matrix.scale(0.2, 0.3, 0.2);
+	leg_back_right.matrix.scale(0.22, 0.32, 0.22);
 	leg_back_right.matrix.translate(-0.5, -1, -0.5);
 	leg_back_right.render();
 
-	// --- Tail: third-joint limb (body → proximal → mid → distal) ---
-	// Joint 1: where tail meets body (proximal segment)
+	// --- Tail: third-joint limb on back (body → proximal → mid → distal), tan with dark tuft ---
 	const tailProximal = new Cube();
-	tailProximal.color = [0.6, 0.3, 0.5, 1];
-	tailProximal.matrix.translate(0.25, 0, 0.5);
+	tailProximal.color = lionTan;
+	tailProximal.matrix.translate(0, 0, 1);
 	tailProximal.matrix.rotate(g_tailProximalAngle, 0, 1, 0);
-	tailProximal.matrix.rotate(-20, 0, 1, 0);
 	const tailProximalMatrix = new Matrix4(tailProximal.matrix);
-	tailProximal.matrix.scale(0.15, 0.12, 0.25);
+	tailProximal.matrix.scale(0.14, 0.11, 0.24);
 	tailProximal.matrix.translate(0.5, -0.5, -0.5);
 	tailProximal.render();
 
-	// Joint 2: mid segment (in proximal’s local frame)
 	const tailMid = new Cube();
-	tailMid.color = [0.5, 0.25, 0.45, 1];
+	tailMid.color = lionTanDark;
 	tailMid.matrix = new Matrix4(tailProximalMatrix);
-	tailMid.matrix.translate(0.15, 0, 0.2);
+	tailMid.matrix.translate(0, 0, 0.25);
 	tailMid.matrix.rotate(g_tailMidAngle, 0, 1, 0);
 	const tailMidMatrix = new Matrix4(tailMid.matrix);
-	tailMid.matrix.scale(0.12, 0.1, 0.2);
+	tailMid.matrix.scale(0.11, 0.09, 0.18);
 	tailMid.matrix.translate(0.5, -0.5, -0.5);
 	tailMid.render();
 
-	// Joint 3: distal segment (in mid’s local frame)
 	const tailDistal = new Cube();
-	tailDistal.color = [0.45, 0.2, 0.4, 1];
+	tailDistal.color = lionTanDark;
 	tailDistal.matrix = new Matrix4(tailMidMatrix);
-	tailDistal.matrix.translate(0.1, 0, 0.15);
+	tailDistal.matrix.translate(0, 0, 0.2);
 	tailDistal.matrix.rotate(g_tailDistalAngle, 0, 1, 0);
-	tailDistal.matrix.scale(0.1, 0.08, 0.15);
+	const tailDistalTipMatrix = new Matrix4(tailDistal.matrix);
+	tailDistal.matrix.scale(0.09, 0.07, 0.14);
 	tailDistal.matrix.translate(0.5, -0.5, -0.5);
 	tailDistal.render();
 
-	// --- Head (one joint: head rotation) ---
+	// Dark tuft at tip of tail
+	const tailTuft = new Cube();
+	tailTuft.color = [0.28, 0.2, 0.14, 1];
+	tailTuft.matrix = new Matrix4(tailDistalTipMatrix);
+	tailTuft.matrix.translate(0, 0, 0.14);
+	tailTuft.matrix.scale(0.08, 0.08, 0.06);
+	tailTuft.matrix.translate(-0.5, -0.5, -0.5);
+	tailTuft.render();
+
+	// --- Head: big face (larger scale for lion), tan ---
 	const head = new Cube();
-	head.color = [1, 0.2, 0.8, 1];
-	head.matrix.translate(0, 0.15, -0.3);
+	head.color = lionTan;
+	head.matrix.translate(0, 0.18, -0.28);
 	head.matrix.rotate(g_headRotation, 0, 0, 1);
 	head.matrix.scale(g_headScale, g_headScale, g_headScale);
 	const headCoordsMatrix = new Matrix4(head.matrix);
-	head.matrix.scale(0.4, 0.4, 0.4);
+	head.matrix.scale(0.52, 0.52, 0.48);
 	head.matrix.translate(-0.5, -0.5, 0);
 	head.render();
 
-	// Eyes (children of head, no extra joint)
+	// Muzzle/snout (big face detail)
+	const muzzle = new Cube();
+	muzzle.color = lionTanDark;
+	muzzle.matrix = new Matrix4(headCoordsMatrix);
+	muzzle.matrix.translate(0, -0.08, 0.28);
+	muzzle.matrix.scale(0.35, 0.2, 0.2);
+	muzzle.matrix.translate(-0.5, -0.5, -0.5);
+	muzzle.render();
+
+	// Nose (dark brown)
+	const nose = new Cube();
+	nose.color = [0.22, 0.16, 0.12, 1];
+	nose.matrix = new Matrix4(headCoordsMatrix);
+	nose.matrix.translate(0, -0.12, 0.42);
+	nose.matrix.scale(0.12, 0.1, 0.08);
+	nose.matrix.translate(-0.5, -0.5, -0.5);
+	nose.render();
+
+	// Eyes (amber with dark center — lion style)
 	const eye_left = new Cube();
-	eye_left.color = [0, 0, 0, 1];
+	eye_left.color = [0.92, 0.68, 0.2, 1];
 	eye_left.matrix = new Matrix4(headCoordsMatrix);
-	eye_left.matrix.translate(0.05, 0, -0.025);
-	eye_left.matrix.scale(0.1, 0.1, 0.1);
+	eye_left.matrix.translate(0.12, 0.02, -0.02);
+	eye_left.matrix.scale(0.14, 0.12, 0.06);
+	eye_left.matrix.translate(-0.5, -0.5, -0.5);
 	eye_left.render();
 
 	const eye_right = new Cube();
-	eye_right.color = [0, 0, 0, 1];
+	eye_right.color = [0.92, 0.68, 0.2, 1];
 	eye_right.matrix = new Matrix4(headCoordsMatrix);
-	eye_right.matrix.translate(-0.15, 0, -0.025);
-	eye_right.matrix.scale(0.1, 0.1, 0.1);
+	eye_right.matrix.translate(-0.26, 0.02, -0.02);
+	eye_right.matrix.scale(0.14, 0.12, 0.06);
+	eye_right.matrix.translate(-0.5, -0.5, -0.5);
 	eye_right.render();
 
-	// --- Tongue: two joints (base then tip), both under head ---
+	// Pupils (small black)
+	const pupil_left = new Cube();
+	pupil_left.color = [0.05, 0.05, 0.05, 1];
+	pupil_left.matrix = new Matrix4(headCoordsMatrix);
+	pupil_left.matrix.translate(0.14, 0.02, -0.035);
+	pupil_left.matrix.scale(0.05, 0.05, 0.02);
+	pupil_left.matrix.translate(-0.5, -0.5, -0.5);
+	pupil_left.render();
+
+	const pupil_right = new Cube();
+	pupil_right.color = [0.05, 0.05, 0.05, 1];
+	pupil_right.matrix = new Matrix4(headCoordsMatrix);
+	pupil_right.matrix.translate(-0.28, 0.02, -0.035);
+	pupil_right.matrix.scale(0.05, 0.05, 0.02);
+	pupil_right.matrix.translate(-0.5, -0.5, -0.5);
+	pupil_right.render();
+
+	// --- Mane: ring of cubes around the head (sides, top, back) ---
+	const maneOffsets = [
+		[-0.32, 0.18, 0], [0.32, 0.18, 0],
+		[-0.28, 0.28, -0.1], [0.28, 0.28, -0.1], [0, 0.32, -0.05],
+		[-0.22, 0.12, 0.2], [0.22, 0.12, 0.2], [0, 0.2, 0.22]
+	];
+	for (let i = 0; i < maneOffsets.length; i++) {
+		const m = new Cube();
+		m.color = (i % 2 === 0) ? maneColor : maneColorLight;
+		m.matrix = new Matrix4(headCoordsMatrix);
+		m.matrix.translate(maneOffsets[i][0], maneOffsets[i][1], maneOffsets[i][2]);
+		m.matrix.scale(0.18, 0.18, 0.18);
+		m.matrix.translate(-0.5, -0.5, -0.5);
+		m.render();
+	}
+
+	// --- Tongue: two joints (base then tip), kept out and pink ---
 	const tongue_base = new Cube();
-	tongue_base.color = [1, 0, 0, 1];
+	tongue_base.color = [0.95, 0.35, 0.4, 1];
 	tongue_base.matrix = new Matrix4(headCoordsMatrix);
-	tongue_base.matrix.translate(0, -0.15, 0.025);
+	tongue_base.matrix.translate(0, -0.18, 0.15);
 	tongue_base.matrix.rotate(g_tongueBaseRotation, 1, 0, 0);
-	tongue_base.matrix.rotate(60, 1, 0, 0);
+	tongue_base.matrix.rotate(55, 1, 0, 0);
 	const tongueBaseCoordsMatrix = new Matrix4(tongue_base.matrix);
-	tongue_base.matrix.scale(0.2, 0.1, 0.05);
+	tongue_base.matrix.scale(0.18, 0.08, 0.04);
 	tongue_base.matrix.translate(-0.5, -1, -0.5);
 	tongue_base.render();
 
 	const tongue_tip = new Cube();
-	tongue_tip.color = [1, 0, 0, 1];
+	tongue_tip.color = [0.95, 0.35, 0.4, 1];
 	tongue_tip.matrix = new Matrix4(tongueBaseCoordsMatrix);
-	tongue_tip.matrix.translate(0, -0.1, 0);
+	tongue_tip.matrix.translate(0, -0.12, 0);
 	tongue_tip.matrix.rotate(g_tongueTipRotation, 1, 0, 0);
-	tongue_tip.matrix.scale(0.2, 0.1, 0.05);
+	tongue_tip.matrix.scale(0.18, 0.08, 0.04);
 	tongue_tip.matrix.translate(-0.5, -1, -0.5);
 	tongue_tip.render();
-
-	// Hat (pyramid on head)
-	const hat = new Pyramid();
-	hat.color = [1, 1, 0, 1];
-	hat.matrix = new Matrix4(headCoordsMatrix);
-	hat.matrix.translate(-0.125, 0.2, 0.05);
-	hat.matrix.scale(0.25, 0.25, 0.25);
-	hat.render();
 
 	const duration = performance.now() - startTime;
 	fpsCounter.innerHTML = `ms: ${duration.toFixed(2)}, fps: ${Math.floor(1000 / duration)}`;
