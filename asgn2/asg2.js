@@ -147,36 +147,44 @@ function renderAllShapes() {
 	// Head Base Transform
 	let headMatrix = new Matrix4().translate(0, 0.18, -0.1).rotate(g_headRotation, 0, 0, 1).scale(g_headScale, g_headScale, g_headScale);
 
-	// REFINED MANE SQUARE OUTLINE (Connected and Smaller)
-	const maneColor = [0.32, 0.16, 0.05, 1], b = 0.21, zM = -0.252;
-	[
-        [-b, b], [0, b], [b, b],    // Top row
-        [-b, 0],         [b, 0],    // Sides
-        [-b, -b], [0, -b], [b, -b]  // Bottom row
-    ].forEach(p => {
-		let m = new Cube(); m.color = maneColor;
-		m.matrix = new Matrix4(headMatrix).translate(p[0], p[1], zM);
-        // Smaller blocks (0.12 instead of 0.18) make it look less bulky
-		m.matrix.scale(0.12, 0.12, 0.08).translate(-0.5, -0.5, -0.5);
-		m.render();
-	});
+	// --- HOLLOW SQUARE MANE (Thin Rectangles) ---
+	const maneColor = [0.32, 0.16, 0.05, 1], zM = -0.255;
+    const thickness = 0.05; // Adjust this to make the outline thinner or thicker
+    const size = 0.52;      // Total width/height of the mane square
 
-	// Head Cube
+    // Top Bar
+    let mTop = new Cube(); mTop.color = maneColor;
+    mTop.matrix = new Matrix4(headMatrix).translate(0, size/2, zM).scale(size + thickness, thickness, 0.05).translate(-0.5, -0.5, -0.5);
+    mTop.render();
+    // Bottom Bar
+    let mBot = new Cube(); mBot.color = maneColor;
+    mBot.matrix = new Matrix4(headMatrix).translate(0, -size/2, zM).scale(size + thickness, thickness, 0.05).translate(-0.5, -0.5, -0.5);
+    mBot.render();
+    // Left Bar
+    let mLeft = new Cube(); mLeft.color = maneColor;
+    mLeft.matrix = new Matrix4(headMatrix).translate(-size/2, 0, zM).scale(thickness, size + thickness, 0.05).translate(-0.5, -0.5, -0.5);
+    mLeft.render();
+    // Right Bar
+    let mRight = new Cube(); mRight.color = maneColor;
+    mRight.matrix = new Matrix4(headMatrix).translate(size/2, 0, zM).scale(thickness, size + thickness, 0.05).translate(-0.5, -0.5, -0.5);
+    mRight.render();
+
+	// Head Cube (Restored to original size)
 	const h = new Cube(); h.color = lionTan;
-	h.matrix = new Matrix4(headMatrix).scale(0.5, 0.5, 0.5).translate(-0.5, -0.5, -0.5);
+	h.matrix = new Matrix4(headMatrix).scale(0.52, 0.52, 0.5).translate(-0.5, -0.5, -0.5);
 	h.render();
 
-	// Eyes & Pupils
-	[-0.1, 0.1].forEach(x => {
+	// Eyes & Pupils (Lowered slightly for better centering)
+	[-0.12, 0.12].forEach(x => {
 		let e = new Cube(); e.color = [0.92, 0.68, 0.2, 1];
-		e.matrix = new Matrix4(headMatrix).translate(x, 0.08, -0.26).scale(0.08, 0.08, 0.05).translate(-0.5, -0.5, -0.5); e.render();
+		e.matrix = new Matrix4(headMatrix).translate(x, 0.1, -0.26).scale(0.12, 0.12, 0.05).translate(-0.5, -0.5, -0.5); e.render();
 		let p = new Cube(); p.color = [0, 0, 0, 1];
-		p.matrix = new Matrix4(headMatrix).translate(x, 0.08, -0.27).scale(0.03, 0.03, 0.02).translate(-0.5, -0.5, -0.5); p.render();
+		p.matrix = new Matrix4(headMatrix).translate(x, 0.1, -0.27).scale(0.05, 0.05, 0.02).translate(-0.5, -0.5, -0.5); p.render();
 	});
 
 	// Nose (Pyramid)
 	const n = new Pyramid(); n.color = [0, 0, 0, 1];
-	n.matrix = new Matrix4(headMatrix).translate(0, -0.05, -0.26).rotate(90, 1, 0, 0).scale(0.1, 0.1, 0.1).translate(-0.5, 0, -0.5);
+	n.matrix = new Matrix4(headMatrix).translate(0, -0.08, -0.26).rotate(90, 1, 0, 0).scale(0.14, 0.14, 0.14).translate(-0.5, 0, -0.5);
 	n.render();
 
 	const dur = performance.now() - startRender;
