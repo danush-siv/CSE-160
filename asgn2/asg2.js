@@ -69,12 +69,26 @@ document.getElementById("tailMidSlider").oninput = function() { g_tailMidAngle =
 document.getElementById("tailDistalSlider").oninput = function() { g_tailDistalAngle = parseFloat(this.value); renderScene(); };
 }
 
+function mouseToRotation(e) {
+	const rect = canvas.getBoundingClientRect();
+	const x = ((e.clientX - rect.left) - canvas.width / 2) / (canvas.width / 2);
+	const y = (canvas.height / 2 - (e.clientY - rect.top)) / (canvas.height / 2);
+	return [180 * x, 180 * y];
+}
+
 function main() {
 getCanvasAndContext();
 window.g_triangleBuffer = gl.createBuffer();
 if (!window.g_triangleBuffer) throw new Error("Failed to create triangle buffer");
 compileShadersAndConnectVariables();
 createUIEvents();
+canvas.onmousemove = (e) => {
+	if (e.buttons === 1) {
+		const [rotY, rotX] = mouseToRotation(e);
+		g_globalRotation_y = rotY;
+		g_globalRotation_x = rotX;
+	}
+};
 canvas.onmousedown = (e) => { if (e.shiftKey) { g_interactiveAnimationStartTime = g_elapsedTime; g_interactiveAnimationPlaying = true; } };
 gl.clearColor(0, 0, 0, 1);
 requestAnimationFrame(tick);
