@@ -200,5 +200,6 @@ tBase.matrix = new Matrix4(headMatrix).translate(0, -0.16, -0.255).rotate(g_tong
 tBase.matrix.scale(0.12, 0.06, 0.12).translate(-0.5, -0.5, -0.5); tBase.render();
 
 const dur = performance.now() - startRender;
-document.getElementById("fpsCounter").innerHTML = `ms: ${dur.toFixed(2)}, fps: ${Math.floor(1000/dur)}`;
+const rawFps = Math.floor(1000 / dur);
+document.getElementById("fpsCounter").innerHTML = `ms: ${dur.toFixed(2)}, fps: ${rawFps}, fps (capped): ${Math.min(60, rawFps)}`;
 }
