@@ -10,9 +10,9 @@ A web-based interactive 3D lion built with WebGL. The creature is made from cube
 
 - **3D Lion:** Blocky lion with big face, mane, muzzle, nose, amber eyes, and pink tongue
 - **Third-Joint Tail:** Three-segment tail on the back with a dark tuft at the tip
-- **Tongue:** Two-joint tongue (base and tip) with sliders and optional animation
+- **Tongue:** Animated tongue (base) with slider and optional animation
 - **Camera Control:** Sliders or drag on the canvas to rotate the view
-- **Joint Sliders:** Head, tongue base, tongue tip, four legs, and tail (proximal, mid, distal)
+- **Joint Sliders:** Head, tongue base, four legs, and tail (proximal, mid, distal)
 - **Animation Toggles:** Turn on/off animation for head, tongue, legs, and tail
 - **Poke Reaction:** Hold Shift and click to trigger a reaction
 - **Performance:** FPS and frame time displayed on the page

@@ -7,7 +7,7 @@
 
 /**
  * CSE 160 Assignment 2 — 3D Blocky Lion
- * Features: Triangular nose, small brown eyes, orange mane, and a two-jointed animated tongue.
+ * Features: Triangular nose, small brown eyes, orange mane, and an animated tongue (base only).
  */	
 
 const VSHADER_SOURCE = `
@@ -48,7 +48,6 @@ u_GlobalRotationMatrix = gl.getUniformLocation(gl.program, "u_GlobalRotationMatr
 let g_globalRotation_y = 0, g_globalRotation_x = 0;
 let g_headRotation = 0, g_headScale = 1, g_animation_enabled_head = false;
 let g_tongueBaseRotation = 0, g_animation_enabled_tongueBase = false;
-let g_tongueTipRotation = 0, g_animation_enabled_tongueTip = false;
 let g_leg_front_leftRotation = 0, g_leg_front_rightRotation = 0;
 let g_leg_back_leftRotation = 0, g_leg_back_rightRotation = 0;
 let g_animation_enabled_legs = false;
@@ -61,12 +60,10 @@ document.getElementById("globalRotationSlider_x").oninput = function() { g_globa
 document.getElementById("headRotationSlider").oninput = function() { g_headRotation = this.value; renderAllShapes(); };
 document.getElementById("toggleAnimationButton_Head").onclick = () => g_animation_enabled_head = !g_animation_enabled_head;
 document.getElementById("toggleAnimationButton_TongueBase").onclick = () => g_animation_enabled_tongueBase = !g_animation_enabled_tongueBase;
-document.getElementById("toggleAnimationButton_TongueTip").onclick = () => g_animation_enabled_tongueTip = !g_animation_enabled_tongueTip;
 document.getElementById("toggleAnimationButton_Legs").onclick = () => g_animation_enabled_legs = !g_animation_enabled_legs;
 document.getElementById("toggleAnimationButton_Tail").onclick = () => g_animation_enabled_tail = !g_animation_enabled_tail;
 
 document.getElementById("tongueBaseRotationSlider").oninput = function() { g_tongueBaseRotation = this.value; renderAllShapes(); };
-document.getElementById("tongueTipRotationSlider").oninput = function() { g_tongueTipRotation = this.value; renderAllShapes(); };
 document.getElementById("tailProximalSlider").oninput = function() { g_tailProximalAngle = parseFloat(this.value); renderAllShapes(); };
 document.getElementById("tailMidSlider").oninput = function() { g_tailMidAngle = parseFloat(this.value); renderAllShapes(); };
 document.getElementById("tailDistalSlider").oninput = function() { g_tailDistalAngle = parseFloat(this.value); renderAllShapes(); };
@@ -98,7 +95,6 @@ if (g_interactiveAnimationPlaying) {
 }
 if (g_animation_enabled_head) g_headRotation = 45 * Math.sin(g_elapsedTime);
 if (g_animation_enabled_tongueBase) g_tongueBaseRotation = 15 * Math.sin(g_elapsedTime * 15);
-if (g_animation_enabled_tongueTip) g_tongueTipRotation = 30 * Math.sin(g_elapsedTime * 15);
 if (g_animation_enabled_legs) {
 	const t = g_elapsedTime * 4;
 	g_leg_front_leftRotation = 45 * Math.sin(t);
@@ -181,17 +177,11 @@ const n = new Pyramid(); n.color = [0, 0, 0, 1];
 n.matrix = new Matrix4(headMatrix).translate(0, -0.05, -0.26).rotate(180, 0, 0, 1).rotate(90, 1, 0, 0).scale(0.12, 0.12, 0.1).translate(-0.5, 0, -0.5);
 n.render();
 
-// --- TWO-JOINTED ANIMATED TONGUE ---
-// Increased size to make the tip rotation visible
+// --- ANIMATED TONGUE (base only) ---
 const tonguePink = [0.95, 0.35, 0.4, 1];
 let tBase = new Cube(); tBase.color = tonguePink;
 tBase.matrix = new Matrix4(headMatrix).translate(0, -0.16, -0.255).rotate(g_tongueBaseRotation, 1, 0, 0);
-let tBaseMat = new Matrix4(tBase.matrix);
 tBase.matrix.scale(0.12, 0.06, 0.12).translate(-0.5, -0.5, -0.5); tBase.render();
-
-let tTip = new Cube(); tTip.color = tonguePink;
-tTip.matrix = new Matrix4(tBaseMat).translate(0, -0.02, 0.08).rotate(g_tongueTipRotation, 1, 0, 0);
-tTip.matrix.scale(0.12, 0.05, 0.1).translate(-0.5, -0.5, -0.5); tTip.render();
 
 const dur = performance.now() - startRender;
 document.getElementById("fpsCounter").innerHTML = `ms: ${dur.toFixed(2)}, fps: ${Math.floor(1000/dur)}`;
