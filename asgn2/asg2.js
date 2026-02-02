@@ -92,8 +92,8 @@ function updateAnimationAngles() {
 		if (g_elapsedTime - g_interactiveAnimationStartTime >= 1) { g_headScale = 1; g_interactiveAnimationPlaying = false; }
 	}
 	if (g_animation_enabled_head) g_headRotation = 45 * Math.sin(g_elapsedTime);
-	if (g_animation_enabled_tongueBase) g_tongueBaseRotation = 15 * Math.sin(g_elapsedTime * 20);
-	if (g_animation_enabled_tongueTip) g_tongueTipRotation = 30 * Math.sin(g_elapsedTime * 20);
+	if (g_animation_enabled_tongueBase) g_tongueBaseRotation = 15 * Math.sin(g_elapsedTime * 15);
+	if (g_animation_enabled_tongueTip) g_tongueTipRotation = 30 * Math.sin(g_elapsedTime * 15);
 	if (g_animation_enabled_legs) {
 		const t = g_elapsedTime * 4;
 		g_leg_front_leftRotation = 45 * Math.sin(t);
@@ -147,45 +147,49 @@ function renderAllShapes() {
 	// Head Base Transform
 	let headMatrix = new Matrix4().translate(0, 0.18, -0.1).rotate(g_headRotation, 0, 0, 1).scale(g_headScale, g_headScale, g_headScale);
 
-	// --- HOLLOW SQUARE MANE (Thin Rectangles) ---
-	const maneColor = [0.32, 0.16, 0.05, 1], zM = -0.255;
-    const thickness = 0.05; // Adjust this to make the outline thinner or thicker
-    const size = 0.52;      // Total width/height of the mane square
+	// ORANGE MANE SQUARE OUTLINE
+	const maneOrange = [0.85, 0.4, 0.1, 1], zM = -0.255;
+    const thickness = 0.04, size = 0.52;
 
-    // Top Bar
-    let mTop = new Cube(); mTop.color = maneColor;
-    mTop.matrix = new Matrix4(headMatrix).translate(0, size/2, zM).scale(size + thickness, thickness, 0.05).translate(-0.5, -0.5, -0.5);
-    mTop.render();
-    // Bottom Bar
-    let mBot = new Cube(); mBot.color = maneColor;
-    mBot.matrix = new Matrix4(headMatrix).translate(0, -size/2, zM).scale(size + thickness, thickness, 0.05).translate(-0.5, -0.5, -0.5);
-    mBot.render();
-    // Left Bar
-    let mLeft = new Cube(); mLeft.color = maneColor;
-    mLeft.matrix = new Matrix4(headMatrix).translate(-size/2, 0, zM).scale(thickness, size + thickness, 0.05).translate(-0.5, -0.5, -0.5);
-    mLeft.render();
-    // Right Bar
-    let mRight = new Cube(); mRight.color = maneColor;
-    mRight.matrix = new Matrix4(headMatrix).translate(size/2, 0, zM).scale(thickness, size + thickness, 0.05).translate(-0.5, -0.5, -0.5);
-    mRight.render();
+    [ // Top, Bottom, Left, Right bars
+        [0, size/2, size + thickness, thickness], [0, -size/2, size + thickness, thickness],
+        [-size/2, 0, thickness, size + thickness], [size/2, 0, thickness, size + thickness]
+    ].forEach((b, i) => {
+        let m = new Cube(); m.color = maneOrange;
+        m.matrix = new Matrix4(headMatrix).translate(b[0], b[1], zM).scale(b[2], b[3], 0.05).translate(-0.5, -0.5, -0.5);
+        m.render();
+    });
 
-	// Head Cube (Restored to original size)
+	// Head Cube
 	const h = new Cube(); h.color = lionTan;
 	h.matrix = new Matrix4(headMatrix).scale(0.52, 0.52, 0.5).translate(-0.5, -0.5, -0.5);
 	h.render();
 
-	// Eyes & Pupils (Lowered slightly for better centering)
+	// SMALL BROWN EYES
+	const eyeBrown = [0.4, 0.2, 0.1, 1];
 	[-0.12, 0.12].forEach(x => {
-		let e = new Cube(); e.color = [0.92, 0.68, 0.2, 1];
-		e.matrix = new Matrix4(headMatrix).translate(x, 0.1, -0.26).scale(0.12, 0.12, 0.05).translate(-0.5, -0.5, -0.5); e.render();
-		let p = new Cube(); p.color = [0, 0, 0, 1];
-		p.matrix = new Matrix4(headMatrix).translate(x, 0.1, -0.27).scale(0.05, 0.05, 0.02).translate(-0.5, -0.5, -0.5); p.render();
+		let e = new Cube(); e.color = eyeBrown;
+		e.matrix = new Matrix4(headMatrix).translate(x, 0.1, -0.26).scale(0.06, 0.06, 0.02).translate(-0.5, -0.5, -0.5); e.render();
+		let p = new Cube(); p.color = [0.1, 0.05, 0, 1]; // Darker brown pupil
+		p.matrix = new Matrix4(headMatrix).translate(x, 0.1, -0.27).scale(0.02, 0.02, 0.01).translate(-0.5, -0.5, -0.5); p.render();
 	});
 
-	// Nose (Pyramid)
+	// TRIANGULAR NOSE (Pyramid)
 	const n = new Pyramid(); n.color = [0, 0, 0, 1];
-	n.matrix = new Matrix4(headMatrix).translate(0, -0.08, -0.26).rotate(90, 1, 0, 0).scale(0.14, 0.14, 0.14).translate(-0.5, 0, -0.5);
+	n.matrix = new Matrix4(headMatrix).translate(0, -0.05, -0.26).rotate(180, 0, 0, 1).rotate(90, 1, 0, 0).scale(0.12, 0.12, 0.1);
+	n.matrix.translate(-0.5, 0, -0.5);
 	n.render();
+
+    // TONGUE ANIMATION (Close beneath nose)
+    const tonguePink = [0.95, 0.35, 0.4, 1];
+    let tBase = new Cube(); tBase.color = tonguePink;
+    tBase.matrix = new Matrix4(headMatrix).translate(0, -0.16, -0.255).rotate(g_tongueBaseRotation, 1, 0, 0);
+    let tBaseMat = new Matrix4(tBase.matrix);
+    tBase.matrix.scale(0.08, 0.04, 0.1).translate(-0.5, -0.5, -0.5); tBase.render();
+
+    let tTip = new Cube(); tTip.color = tonguePink;
+    tTip.matrix = new Matrix4(tBaseMat).translate(0, -0.02, 0.05).rotate(g_tongueTipRotation, 1, 0, 0);
+    tTip.matrix.scale(0.08, 0.03, 0.08).translate(-0.5, -0.5, -0.5); tTip.render();
 
 	const dur = performance.now() - startRender;
 	document.getElementById("fpsCounter").innerHTML = `ms: ${dur.toFixed(2)}, fps: ${Math.floor(1000/dur)}`;
