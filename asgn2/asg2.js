@@ -60,7 +60,6 @@ function createUIEvents() {
 	document.getElementById("toggleAnimationButton_Legs").onclick = () => g_animation_enabled_legs = !g_animation_enabled_legs;
 	document.getElementById("toggleAnimationButton_Tail").onclick = () => g_animation_enabled_tail = !g_animation_enabled_tail;
     
-    // Joint sliders
     document.getElementById("tongueBaseRotationSlider").oninput = function() { g_tongueBaseRotation = this.value; renderAllShapes(); };
     document.getElementById("tongueTipRotationSlider").oninput = function() { g_tongueTipRotation = this.value; renderAllShapes(); };
     document.getElementById("tailProximalSlider").oninput = function() { g_tailProximalAngle = parseFloat(this.value); renderAllShapes(); };
@@ -134,7 +133,7 @@ function renderAllShapes() {
 		l.render();
 	});
 
-	// Tail Logic
+	// Tail
 	let tp = new Cube(); tp.color = lionTan;
 	tp.matrix.translate(0, 0, 1).rotate(g_tailProximalAngle, 0, 1, 0);
 	let tpMat = new Matrix4(tp.matrix);
@@ -145,33 +144,39 @@ function renderAllShapes() {
 	let tmMat = new Matrix4(tm.matrix);
 	tm.matrix.scale(0.11, 0.09, 0.18).translate(0.5, -0.5, -0.5); tm.render();
 
-	// Head Coordinates
+	// Head Base Transform
 	let headMatrix = new Matrix4().translate(0, 0.18, -0.1).rotate(g_headRotation, 0, 0, 1).scale(g_headScale, g_headScale, g_headScale);
 
-	// Mane Square Outline (Front Face)
-	const maneColor = [0.32, 0.16, 0.05, 1], b = 0.28, zM = -0.255;
-	[[-b, b], [0, b], [b, b], [-b, 0], [b, 0], [-b, -b], [0, -b], [b, -b]].forEach(p => {
+	// REFINED MANE SQUARE OUTLINE (Connected and Smaller)
+	const maneColor = [0.32, 0.16, 0.05, 1], b = 0.21, zM = -0.252;
+	[
+        [-b, b], [0, b], [b, b],    // Top row
+        [-b, 0],         [b, 0],    // Sides
+        [-b, -b], [0, -b], [b, -b]  // Bottom row
+    ].forEach(p => {
 		let m = new Cube(); m.color = maneColor;
-		m.matrix = new Matrix4(headMatrix).translate(p[0], p[1], zM).scale(0.18, 0.18, 0.08).translate(-0.5, -0.5, -0.5);
+		m.matrix = new Matrix4(headMatrix).translate(p[0], p[1], zM);
+        // Smaller blocks (0.12 instead of 0.18) make it look less bulky
+		m.matrix.scale(0.12, 0.12, 0.08).translate(-0.5, -0.5, -0.5);
 		m.render();
 	});
 
 	// Head Cube
 	const h = new Cube(); h.color = lionTan;
-	h.matrix = new Matrix4(headMatrix).scale(0.52, 0.52, 0.5).translate(-0.5, -0.5, -0.5);
+	h.matrix = new Matrix4(headMatrix).scale(0.5, 0.5, 0.5).translate(-0.5, -0.5, -0.5);
 	h.render();
 
 	// Eyes & Pupils
-	[-0.12, 0.12].forEach(x => {
+	[-0.1, 0.1].forEach(x => {
 		let e = new Cube(); e.color = [0.92, 0.68, 0.2, 1];
-		e.matrix = new Matrix4(headMatrix).translate(x, 0.1, -0.26).scale(0.1, 0.1, 0.05).translate(-0.5, -0.5, -0.5); e.render();
+		e.matrix = new Matrix4(headMatrix).translate(x, 0.08, -0.26).scale(0.08, 0.08, 0.05).translate(-0.5, -0.5, -0.5); e.render();
 		let p = new Cube(); p.color = [0, 0, 0, 1];
-		p.matrix = new Matrix4(headMatrix).translate(x, 0.1, -0.28).scale(0.04, 0.04, 0.02).translate(-0.5, -0.5, -0.5); p.render();
+		p.matrix = new Matrix4(headMatrix).translate(x, 0.08, -0.27).scale(0.03, 0.03, 0.02).translate(-0.5, -0.5, -0.5); p.render();
 	});
 
 	// Nose (Pyramid)
 	const n = new Pyramid(); n.color = [0, 0, 0, 1];
-	n.matrix = new Matrix4(headMatrix).translate(0, -0.05, -0.26).rotate(90, 1, 0, 0).scale(0.12, 0.12, 0.12).translate(-0.5, 0, -0.5);
+	n.matrix = new Matrix4(headMatrix).translate(0, -0.05, -0.26).rotate(90, 1, 0, 0).scale(0.1, 0.1, 0.1).translate(-0.5, 0, -0.5);
 	n.render();
 
 	const dur = performance.now() - startRender;
