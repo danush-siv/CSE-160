@@ -41,22 +41,10 @@ class Cube {
 }
 
 function drawTriangle3D(vertices) {
-	const vertexBuffer = gl.createBuffer();
-	if (!vertexBuffer) {
-		throw new Error("Failed to create the buffer object");
-	}
-
-	// Bind buffer obj to target
-	gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-
-	// Write data into buffer obj
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.DYNAMIC_DRAW)
-
-	// Assign buffer obj to a_Position
+	// Reuse single buffer (created once in main) for performance
+	gl.bindBuffer(gl.ARRAY_BUFFER, window.g_triangleBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.DYNAMIC_DRAW);
 	gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, 0, 0);
-
-	// Enable the assignment to a_Position
 	gl.enableVertexAttribArray(a_Position);
-
 	gl.drawArrays(gl.TRIANGLES, 0, 3);
 }

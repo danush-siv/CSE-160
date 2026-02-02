@@ -55,22 +55,24 @@ let g_tailProximalAngle = 0, g_tailMidAngle = 0, g_tailDistalAngle = 0, g_animat
 let g_interactiveAnimationPlaying = false, g_interactiveAnimationStartTime = 0;
 
 function createUIEvents() {
-document.getElementById("globalRotationSlider_y").oninput = function() { g_globalRotation_y = this.value; renderAllShapes(); };
-document.getElementById("globalRotationSlider_x").oninput = function() { g_globalRotation_x = this.value; renderAllShapes(); };
-document.getElementById("headRotationSlider").oninput = function() { g_headRotation = this.value; renderAllShapes(); };
+document.getElementById("globalRotationSlider_y").oninput = function() { g_globalRotation_y = this.value; renderScene(); };
+document.getElementById("globalRotationSlider_x").oninput = function() { g_globalRotation_x = this.value; renderScene(); };
+document.getElementById("headRotationSlider").oninput = function() { g_headRotation = this.value; renderScene(); };
 document.getElementById("toggleAnimationButton_Head").onclick = () => g_animation_enabled_head = !g_animation_enabled_head;
 document.getElementById("toggleAnimationButton_TongueBase").onclick = () => g_animation_enabled_tongueBase = !g_animation_enabled_tongueBase;
 document.getElementById("toggleAnimationButton_Legs").onclick = () => g_animation_enabled_legs = !g_animation_enabled_legs;
 document.getElementById("toggleAnimationButton_Tail").onclick = () => g_animation_enabled_tail = !g_animation_enabled_tail;
 
-document.getElementById("tongueBaseRotationSlider").oninput = function() { g_tongueBaseRotation = this.value; renderAllShapes(); };
-document.getElementById("tailProximalSlider").oninput = function() { g_tailProximalAngle = parseFloat(this.value); renderAllShapes(); };
-document.getElementById("tailMidSlider").oninput = function() { g_tailMidAngle = parseFloat(this.value); renderAllShapes(); };
-document.getElementById("tailDistalSlider").oninput = function() { g_tailDistalAngle = parseFloat(this.value); renderAllShapes(); };
+document.getElementById("tongueBaseRotationSlider").oninput = function() { g_tongueBaseRotation = this.value; renderScene(); };
+document.getElementById("tailProximalSlider").oninput = function() { g_tailProximalAngle = parseFloat(this.value); renderScene(); };
+document.getElementById("tailMidSlider").oninput = function() { g_tailMidAngle = parseFloat(this.value); renderScene(); };
+document.getElementById("tailDistalSlider").oninput = function() { g_tailDistalAngle = parseFloat(this.value); renderScene(); };
 }
 
 function main() {
 getCanvasAndContext();
+window.g_triangleBuffer = gl.createBuffer();
+if (!window.g_triangleBuffer) throw new Error("Failed to create triangle buffer");
 compileShadersAndConnectVariables();
 createUIEvents();
 canvas.onmousedown = (e) => { if (e.shiftKey) { g_interactiveAnimationStartTime = g_elapsedTime; g_interactiveAnimationPlaying = true; } };
@@ -84,7 +86,7 @@ let g_elapsedTime = 0;
 function tick() {
 g_elapsedTime = (performance.now() / 1000.0) - g_startTime;
 updateAnimationAngles();
-renderAllShapes();
+renderScene();
 requestAnimationFrame(tick);
 }
 
@@ -110,7 +112,7 @@ if (g_animation_enabled_tail) {
 }
 }
 
-function renderAllShapes() {
+function renderScene() {
 const startRender = performance.now();
 const globalRotationMatrix = new Matrix4();
 globalRotationMatrix.rotate(g_globalRotation_x, 1, 0, 0);
