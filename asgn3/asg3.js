@@ -55,7 +55,9 @@ let g_camera;
 let g_mouseDown = false;
 let g_lastMouseX = 0, g_lastMouseY = 0;
 let g_gameWon = false;
-const BLOCK_SCALE = 1.0; 
+const BLOCK_SCALE = 1.0;
+let g_frameCount = 0;
+let g_lastFpsTime = 0;
 
 let g_map = [];
 const MAP_SIZE = 32;
@@ -145,9 +147,35 @@ function setupCanvas() {
   if (!canvas) { console.error('Canvas #webgl not found'); return false; }
   gl = canvas.getContext('webgl', { preserveDrawingBuffer: true });
   if (!gl) { console.error('WebGL not supported'); return false; }
+  var w = canvas.width;
+  var h = canvas.height;
+  if (w <= 0 || h <= 0) {
+    canvas.width = 600;
+    canvas.height = 600;
+    w = 600;
+    h = 600;
+  }
+  gl.viewport(0, 0, w, h);
   gl.enable(gl.DEPTH_TEST);
   gl.clearColor(0.5, 0.8, 1, 1);
   return true;
+}
+
+function createDefaultTexture() {
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  return tex;
+}
+
+function bindDefaultTextures() {
+  for (var u = 0; u <= 4; u++) {
+    gl.activeTexture(gl.TEXTURE0 + u);
+    gl.bindTexture(gl.TEXTURE_2D, createDefaultTexture());
+    var sampler = [u_Sampler0, u_Sampler1, u_Sampler2, u_Sampler3, u_Sampler4][u];
+    if (sampler !== null) gl.uniform1i(sampler, u);
+  }
 }
 
 function initTextures() {
@@ -250,12 +278,22 @@ function renderAllShapes() {
   drawBatchedBatch(sPos, sUv, -2, [0.5, 0.8, 1, 1]);
   gl.cullFace(gl.BACK);
   gl.depthMask(true);
+
+  g_frameCount++;
+  var now = performance.now ? performance.now() / 1000 : 0;
+  if (now - g_lastFpsTime >= 0.5) {
+    g_lastFpsTime = now;
+    var el = document.getElementById('fpsCounter');
+    if (el) el.textContent = 'FPS: ' + Math.round(g_frameCount / 0.5);
+    g_frameCount = 0;
+  }
 }
 
 function main() {
   if (!setupCanvas()) return;
   connectVariablesToGLSL();
   if (!gl.program) { console.error('Shaders failed to compile'); return; }
+  bindDefaultTextures();
   g_camera = new Camera();
   g_camera.updateProjectionMatrix(canvas);
   buildMap();
@@ -265,7 +303,10 @@ function main() {
   var tc = document.getElementById('titleCanvas');
   if (tc) tc.onclick = restartGame;
   
-  function tick() { renderAllShapes(); requestAnimationFrame(tick); }
+  function tick() {
+    try { renderAllShapes(); } catch (e) { console.error('Render error:', e); }
+    requestAnimationFrame(tick);
+  }
   tick();
 }
 
