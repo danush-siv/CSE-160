@@ -1,0 +1,84 @@
+<!-- Danush Sivarajan -->
+<!-- dsivaraj@ucsc.edu -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+	<meta charset="utf-8" />
+	<title>ASG2 - Blocky 3D Lion</title>
+  </head>
+
+  <body onload="main()">
+	<h1 style="margin-bottom: 0.25em;">ASG2 - Blocky 3D Lion</h1>
+	<p style="font-weight: bold; margin: 0.25em 0;">Name: Danush Sivarajan</p>
+	<p style="font-weight: bold; margin: 0.25em 0;">Email: dsivaraj@ucsc.edu</p>
+	<p style="font-weight: bold; margin: 0.25em 0;">ID: 1932047</p>
+
+	<canvas id="webgl" width="400" height="400">
+	Please use a browser that supports "canvas"
+	</canvas>
+
+	<br>
+	<span id="fpsCounter"></span>
+
+	<br><br>
+	<span>Camera Rotation Left/Right</span>
+	<input type="range" class="slider" min="-180" max="180" value="0" id="globalRotationSlider_y">
+	<br>
+	<span>Camera Rotation Up/Down</span>
+	<input type="range" class="slider" min="-180" max="180" value="0" id="globalRotationSlider_x">	
+
+	<br><br><br>
+	<span>Head Rotation</span>
+	<input type="range" class="slider" min="-45" max="45" value="0" id="headRotationSlider">
+	<button id="toggleAnimationButton_Head">Toggle Animation</button>
+	<br>
+	<span>Tongue Base Rotation</span>
+	<input type="range" class="slider" min="-45" max="45" value="0" id="tongueBaseRotationSlider">
+	<button id="toggleAnimationButton_TongueBase">Toggle Animation</button>
+
+	<br><br>
+	<span>Leg Rotations</span>
+	<button id="toggleAnimationButton_Legs">Toggle Animation</button>
+	<br>
+	<input type="range" class="slider" min="-45" max="45" value="0" id="leg_front_rightRotationSlider">
+	<input type="range" class="slider" min="-45" max="45" value="0" id="leg_front_leftRotationSlider">
+	<br>
+	<input type="range" class="slider" min="-45" max="45" value="0" id="leg_back_rightRotationSlider">
+	<input type="range" class="slider" min="-45" max="45" value="0" id="leg_back_leftRotationSlider">
+
+	<br><br>
+	<!-- Third-joint limb: tail (proximal → mid → distal) -->
+	<span>Tail — Proximal</span>
+	<input type="range" class="slider" min="-45" max="45" value="0" id="tailProximalSlider">
+	<br>
+	<span>Tail — Mid</span>
+	<input type="range" class="slider" min="-45" max="45" value="0" id="tailMidSlider">
+	<br>
+	<span>Tail — Distal</span>
+	<input type="range" class="slider" min="-45" max="45" value="0" id="tailDistalSlider">
+	<br>
+	<button id="toggleAnimationButton_Tail">Tail Animation</button>
+
+	<div style="margin-top: 1.5em; padding: 1em; background: #f0f0f0; border-radius: 6px; max-width: 500px;">
+		<p style="font-weight: bold; margin-top: 0;">What You're Looking At:</p>
+		<ol style="margin: 0.5em 0;">
+			<li><strong>Canvas:</strong> The black area above is where the 3D lion is drawn. You're looking at a blocky lion built from cubes and a pyramid (for the nose).</li>
+			<li><strong>The lion:</strong> It has a body, four legs, a head with eyes and an orange mane outline, a black triangle nose, a pink tongue, and a three-part tail on the back.</li>
+			<li><strong>Your choice:</strong> Use the sliders to pose the lion, turn on the animation toggles to make parts move, or click and drag on the canvas to spin the view. Hold Shift and click for a quick poke reaction!</li>
+		</ol>
+		<p style="font-weight: bold; margin: 0.75em 0 0.25em 0;">How to Interact:</p>
+		<p style="margin: 0.25em 0;">Use the camera sliders or click and drag on the canvas to rotate the lion. Adjust the head, tongue, leg, and tail sliders to pose it. Hit the toggle buttons to animate the head, tongue, legs, or tail. The numbers under the canvas show how fast each frame is drawing (ms and fps).</p>
+		<p style="margin: 0.25em 0; font-size: 0.9em; color: #555;">(used chatgpt for mouse control stuff)</p>
+	</div>
+
+	<script src="./lib/cuon-matrix-cse160.js"></script>
+	<script src="./lib/cuon-utils.js"></script>
+	<script src="./lib/webgl-utils.js"></script>
+	<script src="./lib/webgl-debug.js"></script>
+
+	<script src="./cube.js"></script>
+	<script src="./pyramid.js"></script>
+	<script src="./asg2.js"></script>
+  </body>
+</html>

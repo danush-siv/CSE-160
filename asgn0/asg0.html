@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASG0 - Vector Operations</title>
+</head>
+<body onload="main()">
+    <div style="margin: 10px;">
+        <h2>ASG0 - Vector Operations</h2>
+        <p><strong>Name:</strong> Danush Sivarajan</p>
+        <p><strong>Email:</strong> dsivaraj@ucsc.edu</p>
+    </div>
+    <canvas id="gl-canvas" width="400" height="400">
+        <!-- Ooops ... your browser doesn't support the HTML5 canvas element -->
+    </canvas>
+    
+    <div>
+        <h3>Vector v1</h3>
+        <label>X: <input type="text" id="v1x" value="2.25"></label>
+        <label>Y: <input type="text" id="v1y" value="2.25"></label>
+    </div>
+    
+    <div>
+        <h3>Vector v2</h3>
+        <label>X: <input type="text" id="v2x" value="0"></label>
+        <label>Y: <input type="text" id="v2y" value="0"></label>
+    </div>
+    
+    <div>
+        <button id="draw-button" onclick="handleDrawEvent()">Draw</button>
+    </div>
+    
+    <div>
+        <h3>Operations</h3>
+        <label>Operation: 
+            <select id="operation-selector">
+                <option value="add">Add</option>
+                <option value="sub">Subtract</option>
+                <option value="mul">Multiply</option>
+                <option value="div">Divide</option>
+                <option value="magnitude">Magnitude</option>
+                <option value="normalize">Normalize</option>
+                <option value="angle">Angle between</option>
+                <option value="area">Area</option>
+            </select>
+        </label>
+        <label>Scalar: <input type="text" id="scalar-input" value="1"></label>
+        <button id="operation-button" onclick="handleDrawOperationEvent()">Draw Operation</button>
+    </div>
+    
+    <script src="lib/cuon-matrix-cse160.js"></script>
+    <script src="asg0.js"></script>
+</body>
+</html>

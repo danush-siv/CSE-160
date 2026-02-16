@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>CSE 160 Assignment 3 — Desert Ruins</title>
+</head>
+<body onload="main()">
+  <h1>Desert Ruins</h1>
+  <p><strong>Goal:</strong> Find the golden treasure block in the ruins.</p>
+  <div style="position:relative; display:inline-block;">
+    <canvas id="webgl" width="600" height="600">Please use a browser that supports canvas.</canvas>
+    <canvas id="titleCanvas" width="600" height="600" style="position:absolute; top:0; left:0; pointer-events:none; display:none;"></canvas>
+  </div>
+  <p id="fpsCounter">FPS: --</p>
+  <p id="gameMessage" style="font-weight:bold; color: green;"></p>
+  <p>
+    <strong>Controls:</strong> W/S — forward/back &nbsp; A/D — left/right &nbsp;
+    Q/E — turn left/right &nbsp; Mouse drag — look around &nbsp;
+    R — add block &nbsp; F — remove block
+  </p>
+  <script src="./lib/cuon-matrix-cse160.js"></script>
+  <script src="./lib/cuon-utils.js"></script>
+  <script src="./lib/webgl-utils.js"></script>
+  <script src="./lib/webgl-debug.js"></script>
+  <script src="./camera.js"></script>
+  <script src="./Cube.js"></script>
+  <script src="./asg3.js"></script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASG1 - Interactive Drawing</title>
+    <link rel="icon" href="data:,">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: white;
+        }
+        .info {
+            margin-bottom: 20px;
+        }
+        .info p {
+            margin: 5px 0;
+        }
+        canvas {
+            border: 2px solid #333;
+            display: block;
+            margin: 20px 0;
+            background-color: white;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        .control-row {
+            margin: 15px 0;
+        }
+        .control-row label {
+            display: inline-block;
+            margin-right: 10px;
+            font-weight: normal;
+        }
+        .control-row input[type="range"] {
+            width: 200px;
+            vertical-align: middle;
+        }
+        button {
+            padding: 5px 15px;
+            margin: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            border: 1px solid #333;
+            background-color: #fff;
+            border-radius: 2px;
+        }
+        button:hover {
+            background-color: #f0f0f0;
+        }
+        button.active {
+            background-color: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+        .drawing-mode-buttons {
+            display: inline-block;
+            margin-left: 10px;
+        }
+        .drawing-mode-buttons button {
+            padding: 3px 10px;
+            font-size: 12px;
+        }
+        .color-sliders {
+            display: inline-block;
+            margin-left: 10px;
+        }
+        .color-sliders label {
+            margin-right: 15px;
+        }
+        .size-row {
+            display: inline-block;
+            margin-right: 30px;
+        }
+        .canvas-container {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        .canvas-wrapper {
+            flex-shrink: 0;
+        }
+        .image-wrapper {
+            flex-shrink: 0;
+        }
+        .image-wrapper img {
+            max-width: 512px;
+            height: auto;
+            border: 2px solid #333;
+        }
+    </style>
+</head>
+<body onload="main()">
+    <div class="info">
+        <h1>ASG1 - Interactive Drawing</h1>
+        <p><strong>Name:</strong> Danush Sivarajan</p>
+        <p><strong>Email:</strong> dsivaraj@ucsc.edu</p>
+        <p><strong>ID:</strong> 1932047</p>
+    </div>
+    
+    <button onclick="clearCanvas()">Clear Canvas</button>
+    
+    <div class="canvas-container">
+        <div class="canvas-wrapper">
+            <canvas id="gl-canvas" width="512" height="512">
+                <!-- Ooops ... your browser doesn't support the HTML5 canvas element -->
+            </canvas>
+        </div>
+        <div class="image-wrapper">
+            <img src="IMG_7468.png" alt="Reference image">
+        </div>
+    </div>
+    
+    <div class="controls">
+        <div class="control-row">
+            <label><strong>Drawing Mode:</strong></label>
+            <div class="drawing-mode-buttons">
+                <button id="point-button" onclick="setBrushType('point')" class="active">Squares</button>
+                <button id="triangle-button" onclick="setBrushType('triangle')">Triangles</button>
+                <button id="circle-button" onclick="setBrushType('circle')">Circles</button>
+            </div>
+        </div>
+        
+        <div class="control-row">
+            <label><strong>Shape Color:</strong></label>
+            <div class="color-sliders">
+                <label>Red: <input type="range" id="red-slider" min="0" max="100" value="0" oninput="updateColor()"></label>
+                <label>Green: <input type="range" id="green-slider" min="0" max="100" value="50" oninput="updateColor()"></label>
+                <label>Blue: <input type="range" id="blue-slider" min="0" max="100" value="100" oninput="updateColor()"></label>
+            </div>
+        </div>
+        
+        <div class="control-row">
+            <div class="size-row">
+                <label><strong>Shape Size:</strong> <input type="range" id="size-slider" min="1" max="50" value="1" oninput="updateSize()"></label>
+            </div>
+            <label><strong>(Circles) Segment Count:</strong> <input type="range" id="segments-slider" min="3" max="50" value="3" oninput="updateSegments()"></label>
+        </div>
+        
+        <div class="control-row">
+            <div style="margin-top: 20px; padding: 15px; background-color: #f5f5f5; border-radius: 5px; max-width: 800px;">
+                <h3 style="margin-top: 0;">What You're Looking At:</h3>
+                <ol style="margin: 10px 0; padding-left: 20px;">
+                    <li><strong>Canvas:</strong> The white drawing area on the left where you can create your own artwork.</li>
+                    <li><strong>Danush's Drawing:</strong> The image on the right shows a hand-drawn picture of a house with a cloud and a sun that was created on graph paper.</li>
+                    <li><strong>Your Choice:</strong> You can try to recreate Danush's drawing (the house with cloud and sun) using the drawing tools, or just have fun creating your own art on the canvas!</li>
+                </ol>
+                <p style="margin: 10px 0 0 0;"><strong>How to Draw:</strong> Select a shape type (Squares, Triangles, or Circles), adjust the color and size using the sliders, then click and drag on the canvas to draw.</p>
+            </div>
+        </div>
+        
+    </div>
+    
+    <script src="lib/cuon-matrix-cse160.js"></script>
+    <script src="Point.js"></script>
+    <script src="Triangle.js"></script>
+    <script src="Circle.js"></script>
+    <script src="asgn1.js"></script>
+</body>
+</html>
