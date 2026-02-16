@@ -91,4 +91,32 @@ class Camera {
     this.at.add(fPrime);
     this.updateViewMatrix();
   }
+
+  panUp(alpha = 5) {
+    const f = new Vector3(this.at.elements);
+    f.sub(this.eye);
+    const right = Vector3.cross(f, this.up);
+    right.normalize();
+    if (right.elements[0] === 0 && right.elements[1] === 0 && right.elements[2] === 0) return;
+    const rotationMatrix = new Matrix4();
+    rotationMatrix.setRotate(-alpha, right.elements[0], right.elements[1], right.elements[2]);
+    const fPrime = rotationMatrix.multiplyVector3(f);
+    this.at.set(this.eye);
+    this.at.add(fPrime);
+    this.updateViewMatrix();
+  }
+
+  panDown(alpha = 5) {
+    const f = new Vector3(this.at.elements);
+    f.sub(this.eye);
+    const right = Vector3.cross(f, this.up);
+    right.normalize();
+    if (right.elements[0] === 0 && right.elements[1] === 0 && right.elements[2] === 0) return;
+    const rotationMatrix = new Matrix4();
+    rotationMatrix.setRotate(alpha, right.elements[0], right.elements[1], right.elements[2]);
+    const fPrime = rotationMatrix.multiplyVector3(f);
+    this.at.set(this.eye);
+    this.at.add(fPrime);
+    this.updateViewMatrix();
+  }
 }

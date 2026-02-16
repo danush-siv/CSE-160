@@ -69,6 +69,7 @@ const G_JUMP_FORCE = 0.25;
 let g_isJumping = false;
 let g_mouseDown = false;
 let g_lastMouseX = -1;
+let g_lastMouseY = -1;
 
 /**
  * Builds a maze of connected walls using Recursive Backtracking.
@@ -306,7 +307,7 @@ function main() {
       const farW = inv.multiplyVector4(farClip);
       const nw = nearW.elements[3];
       const fw = farW.elements[3];
-      if (Math.abs(nw) < 1e-6) { g_mouseDown = true; g_lastMouseX = e.clientX; return; }
+      if (Math.abs(nw) < 1e-6) { g_mouseDown = true; g_lastMouseX = e.clientX; g_lastMouseY = e.clientY; return; }
       const ox = nearW.elements[0] / nw, oy = nearW.elements[1] / nw, oz = nearW.elements[2] / nw;
       const fx = farW.elements[0] / fw, fy = farW.elements[1] / fw, fz = farW.elements[2] / fw;
       let dx = fx - ox, dy = fy - oy, dz = fz - oz;
@@ -330,12 +331,18 @@ function main() {
     }
     g_mouseDown = true;
     g_lastMouseX = e.clientX;
+    g_lastMouseY = e.clientY;
   };
   canvas.onmouseup = () => { g_mouseDown = false; };
   canvas.onmousemove = e => {
     if (g_mouseDown) {
-      g_camera.panRight(-(e.clientX - g_lastMouseX) * 0.2);
+      const dx = (e.clientX - g_lastMouseX) * 0.2;
+      const dy = (e.clientY - g_lastMouseY) * 0.2;
+      g_camera.panRight(-dx);
+      if (dy > 0) g_camera.panDown(dy);
+      else if (dy < 0) g_camera.panUp(-dy);
       g_lastMouseX = e.clientX;
+      g_lastMouseY = e.clientY;
     }
   };
 
