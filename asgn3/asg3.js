@@ -290,20 +290,14 @@ function main() {
 
   canvas.onmousedown = e => {
     if (e.button === 0 && !g_gameWon) {
-      const rect = canvas.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / canvas.width) * 2 - 1;
-      const y = 1 - ((e.clientY - rect.top) / canvas.height) * 2;
-      const pv = new Matrix4(g_camera.projectionMatrix).multiply(g_camera.viewMatrix);
-      const inv = new Matrix4(pv).invert();
-      const nearPt = inv.multiplyVector4(new Vector4([x, y, -1, 1]));
-      const farPt = inv.multiplyVector4(new Vector4([x, y, 1, 1]));
-      const ow = 1 / nearPt.elements[3];
-      const ox = nearPt.elements[0] * ow, oy = nearPt.elements[1] * ow, oz = nearPt.elements[2] * ow;
-      let dx = farPt.elements[0] / farPt.elements[3] - ox, dy = farPt.elements[1] / farPt.elements[3] - oy, dz = farPt.elements[2] / farPt.elements[3] - oz;
+      const ex = g_camera.eye.elements[0], ey = g_camera.eye.elements[1], ez = g_camera.eye.elements[2];
+      const ax = g_camera.at.elements[0], ay = g_camera.at.elements[1], az = g_camera.at.elements[2];
+      let dx = ax - ex, dy = ay - ey, dz = az - ez;
       const len = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1;
       dx /= len; dy /= len; dz /= len;
-      const result = rayHitGold(ox, oy, oz, dx, dy, dz);
-      if (result && result.t <= 5) {
+      const result = rayHitGold(ex, ey, ez, dx, dy, dz);
+      if (result) {
+        e.preventDefault();
         g_gameWon = true;
         const tc = document.getElementById('titleCanvas');
         if (tc) {
@@ -348,10 +342,11 @@ function main() {
     if (ev.key === 'r' && nx > 0 && nx < MAP_SIZE - 1 && nz > 0 && nz < MAP_SIZE - 1) {
       if (g_map[nx][nz] === 0 && !(nx === 16 && nz === 16)) g_map[nx][nz] = 3;
     }
-    // F: deconstruct block by block (3 -> 1 -> 0)
+    // F: deconstruct block by block (3 -> 1 -> 0). Gold (4) is unbreakable.
     if (ev.key === 'f' && nx > 0 && nx < MAP_SIZE - 1 && nz > 0 && nz < MAP_SIZE - 1) {
       const cell = g_map[nx][nz];
-      if (cell === 3) g_map[nx][nz] = 1;
+      if (cell === 4) { /* gold - do nothing */ }
+      else if (cell === 3) g_map[nx][nz] = 1;
       else if (cell === 1) g_map[nx][nz] = 0;
     }
     if (ev.key === 'r' || ev.key === 'f') ev.preventDefault();
