@@ -7,11 +7,14 @@ const VSHADER_SOURCE = `
 attribute vec4 a_Position;
 attribute vec2 a_UV;
 varying vec2 v_UV;
+varying vec3 v_WorldPos;
 uniform mat4 u_ModelMatrix;
 uniform mat4 u_ViewMatrix;
 uniform mat4 u_ProjectionMatrix;
 void main() {
-  gl_Position = u_ProjectionMatrix * u_ViewMatrix * u_ModelMatrix * a_Position;
+  vec4 w = u_ModelMatrix * a_Position;
+  v_WorldPos = w.xyz;
+  gl_Position = u_ProjectionMatrix * u_ViewMatrix * w;
   v_UV = a_UV;
 }
 `;
@@ -19,15 +22,25 @@ void main() {
 const FSHADER_SOURCE = `
 precision mediump float;
 varying vec2 v_UV;
+varying vec3 v_WorldPos;
 uniform vec4 u_FragColor;
 uniform float u_texColorWeight;
 uniform int u_whichTexture;
-uniform sampler2D u_Sampler1; // Sand
-uniform sampler2D u_Sampler3; // Gold
-uniform sampler2D u_Sampler4; // Dirt
+uniform sampler2D u_Sampler1;
+uniform sampler2D u_Sampler3;
+uniform sampler2D u_Sampler4;
 void main() {
-  if (u_whichTexture == -2 || u_whichTexture == -1) {
-    gl_FragColor = u_FragColor; // Sky or solid (boundary, walls, gold)
+  if (u_whichTexture == -2) {
+    float t = (v_WorldPos.y + 75.0) / 150.0;
+    vec4 top = vec4(0.2, 0.4, 0.7, 1.0);
+    vec4 horizon = vec4(0.6, 0.85, 1.0, 1.0);
+    gl_FragColor = mix(horizon, top, t);
+    vec3 sunDir = normalize(vec3(0.4, 1.0, 0.3));
+    vec3 fragDir = normalize(v_WorldPos);
+    float sun = pow(max(0.0, dot(fragDir, sunDir)), 64.0);
+    gl_FragColor.rgb += sun * vec3(1.0, 0.98, 0.9);
+  } else if (u_whichTexture == -1) {
+    gl_FragColor = u_FragColor;
   } else {
     vec4 texColor = vec4(1.0);
     if (u_whichTexture == 1) texColor = texture2D(u_Sampler1, v_UV);
@@ -74,33 +87,29 @@ function buildMap() {
     g_map[i][MAP_SIZE - 1] = 2;
   }
 
-  // Recursive Backtracking to carve connected paths
-  const R = 14, C = 14;
+  // Recursive Backtracking: 10x10 rooms with 3-cell spacing for more breathing room
+  const R = 10, C = 10;
   const visited = new Array(R * C).fill(false);
   const stack = [{r: 0, c: 0}];
   visited[0] = true;
   g_map[2][2] = 0;
-
-  const dr = [-1, 1, 0, 0];
-  const dc = [0, 0, -1, 1];
+  const dr = [-1, 1, 0, 0], dc = [0, 0, -1, 1];
 
   while (stack.length > 0) {
     const curr = stack[stack.length - 1];
     const neighbors = [];
     for (let i = 0; i < 4; i++) {
       const nr = curr.r + dr[i], nc = curr.c + dc[i];
-      if (nr >= 0 && nr < R && nc >= 0 && nc < C && !visited[nr * C + nc]) {
+      if (nr >= 0 && nr < R && nc >= 0 && nc < C && !visited[nr * C + nc])
         neighbors.push({r: nr, c: nc, dir: i});
-      }
     }
-
     if (neighbors.length === 0) {
       stack.pop();
     } else {
       const next = neighbors[Math.floor(Math.random() * neighbors.length)];
       visited[next.r * C + next.c] = true;
-      g_map[2 + 2 * next.r][2 + 2 * next.c] = 0;
-      g_map[2 + 2 * curr.r + dr[next.dir]][2 + 2 * curr.c + dc[next.dir]] = 0;
+      g_map[2 + 3 * next.r][2 + 3 * next.c] = 0;
+      g_map[2 + 3 * curr.r + (next.r - curr.r)][2 + 3 * curr.c + (next.c - curr.c)] = 0;
       stack.push(next);
     }
   }
@@ -163,6 +172,24 @@ function drawBatchedBatch(positions, uvs, textureNum, color) {
 
 const V = [0,0,0, 1,1,0, 1,0,0, 0,0,0, 0,1,0, 1,1,0, 0,1,0, 1,1,1, 1,1,0, 0,1,0, 0,1,1, 1,1,1, 0,0,0, 1,0,1, 0,0,1, 0,0,0, 1,0,0, 1,0,1, 1,0,0, 1,1,1, 1,1,0, 1,0,0, 1,0,1, 1,1,1, 0,0,0, 0,1,1, 0,1,0, 0,0,0, 0,0,1, 0,1,1, 0,0,1, 1,1,1, 0,1,1, 0,0,1, 1,0,1, 1,1,1];
 const U = [0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1];
+
+function rayHitGold(ox, oy, oz, dx, dy, dz) {
+  const min = [0, -0.8, 0], max = [1, 0.2, 1];
+  const o = [ox, oy, oz], d = [dx, dy, dz];
+  let tMin = -Infinity, tMax = Infinity;
+  for (let i = 0; i < 3; i++) {
+    if (Math.abs(d[i]) < 1e-6) {
+      if (o[i] < min[i] || o[i] > max[i]) return null;
+    } else {
+      let t1 = (min[i] - o[i]) / d[i], t2 = (max[i] - o[i]) / d[i];
+      if (t1 > t2) { const tmp = t1; t1 = t2; t2 = tmp; }
+      tMin = Math.max(tMin, t1); tMax = Math.min(tMax, t2);
+      if (tMin > tMax) return null;
+    }
+  }
+  const t = tMin >= 0 ? tMin : tMax;
+  return t >= 0 && t < 100 ? { hit: true, t } : null;
+}
 
 function pushCube(matrix, posArr, uvArr) {
   for (let i = 0; i < V.length; i += 3) {
@@ -260,7 +287,31 @@ function main() {
   restartGame();
   initTextures();
 
-  canvas.onmousedown = e => { g_mouseDown = true; g_lastMouseX = e.clientX; };
+  canvas.onmousedown = e => {
+    if (e.button === 0 && !g_gameWon) {
+      const ex = g_camera.eye.elements[0], ey = g_camera.eye.elements[1], ez = g_camera.eye.elements[2];
+      const ax = g_camera.at.elements[0], ay = g_camera.at.elements[1], az = g_camera.at.elements[2];
+      let dx = ax - ex, dy = ay - ey, dz = az - ez;
+      const len = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1;
+      dx /= len; dy /= len; dz /= len;
+      const result = rayHitGold(ex, ey, ez, dx, dy, dz);
+      if (result && result.t <= 2) {
+        g_gameWon = true;
+        const tc = document.getElementById('titleCanvas');
+        if (tc) {
+          tc.style.display = 'block';
+          const ctx = tc.getContext('2d');
+          ctx.fillStyle = 'rgba(0,0,0,0.7)';
+          ctx.fillRect(0, 0, 600, 600);
+          ctx.fillStyle = 'gold';
+          ctx.font = '30px Arial';
+          ctx.fillText('GOLD FOUND! Click to Restart', 100, 300);
+        }
+      }
+    }
+    g_mouseDown = true;
+    g_lastMouseX = e.clientX;
+  };
   canvas.onmouseup = () => { g_mouseDown = false; };
   canvas.onmousemove = e => {
     if (g_mouseDown) {
