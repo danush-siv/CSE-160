@@ -21,6 +21,10 @@ A WebGL maze game. Find the golden treasure block by navigating the maze or brea
 3. Press R to add a wall in front, F to remove one (block by block)
 4. Find the yellow gold block, look at it, and left-click to win
 
+## Credits / Tools
+
+- Used ChatGPT for ray casting (click-on-gold detection) and for making the sun in the sky.
+
 ## Live Demo
 
 Visit: https://danush-siv.github.io/CSE-160/asgn3/asg3.html

@@ -2,6 +2,7 @@
  * CSE 160 Assignment 3 — Camera class (Matsuda Ch7).
  * Stores and controls View and Projection matrices.
  */
+
 class Camera {
   constructor() {
     this.fov = 60;
