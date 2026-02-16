@@ -34,7 +34,7 @@ void main() {
     else if (u_whichTexture == 3) texColor = texture2D(u_Sampler3, v_UV);
     else if (u_whichTexture == 4) texColor = texture2D(u_Sampler4, v_UV);
     
-    // Safety: If texture failed (alpha 0) or weight is 0, use brown FragColor
+    // Safety: If texture is missing or weight is low, stay brown/gold
     if (texColor.a < 0.1 || u_texColorWeight < 0.1) {
        gl_FragColor = u_FragColor;
     } else {
@@ -52,10 +52,9 @@ let u_texColorWeight, u_whichTexture, u_Sampler1, u_Sampler3, u_Sampler4;
 let g_camera;
 let g_gameWon = false;
 let g_map = [];
-const MAP_SIZE = 32;
+const MAP_SIZE = 32; 
 const g_textureLoaded = { 1: false, 3: false, 4: false };
 
-// Physics and Mouse
 let g_verVelocity = 0;      
 const G_GRAVITY = -0.01;    
 const G_JUMP_FORCE = 0.25;  
@@ -64,34 +63,32 @@ let g_mouseDown = false;
 let g_lastMouseX = -1;
 
 function buildMap() {
-  // Reset map array
   g_map = new Array(MAP_SIZE);
   for (let x = 0; x < MAP_SIZE; x++) {
     g_map[x] = new Int8Array(MAP_SIZE).fill(0);
   }
 
-  // Boundary Walls: Fixed 14x14 box centered at index 16
-  const limit = 7; 
-  for (let i = -limit; i <= limit; i++) {
-    g_map[16 + limit][16 + i] = 1;
-    g_map[16 - limit][16 + i] = 1;
-    g_map[16 + i][16 + limit] = 1;
-    g_map[16 + i][16 - limit] = 1;
+  // FIXED: Expanded Boundary walls to cover the full 32x32 sand area
+  for (let i = 0; i < MAP_SIZE; i++) {
+    g_map[0][i] = 1;
+    g_map[MAP_SIZE - 1][i] = 1;
+    g_map[i][0] = 1;
+    g_map[i][MAP_SIZE - 1] = 1;
   }
 
-  // Maze Walls (Brown Dirt): Spaced out using odd coordinates for 1-block paths
-  for (let x = 16 - limit + 1; x < 16 + limit; x++) {
-    for (let z = 16 - limit + 1; z < 16 + limit; z++) {
-      if (x === 16 && z === 16) continue; // Keep gold center clear
-      if (x > 9 && x < 13 && z > 9 && z < 13) continue; // Keep spawn clear
+  // Maze Walls (Brown Dirt): Spaced for navigation
+  for (let x = 2; x < MAP_SIZE - 2; x++) {
+    for (let z = 2; z < MAP_SIZE - 2; z++) {
+      if (x === 16 && z === 16) continue; // Treasure spot
+      if (x > 9 && x < 13 && z > 9 && z < 13) continue; // Spawn spot
 
       if (x % 2 !== 0 && z % 2 !== 0) {
-        if (Math.random() > 0.5) g_map[x][z] = 1;
+        if (Math.random() > 0.6) g_map[x][z] = 1;
       }
     }
   }
 
-  g_map[16][16] = 4; // Gold Block
+  g_map[16][16] = 4; // Gold Block at center
 }
 
 function initTextures() {
@@ -168,7 +165,7 @@ function renderAllShapes() {
   pushCube(m, gP, gU);
   drawBatchedBatch(gP, gU, 1, [0.8, 0.7, 0.5, 1.0]);
 
-  // Map
+  // Map Rendering
   let dP = [], dU = [], goP = [], goU = []; 
   for(let x=0; x<MAP_SIZE; x++){
     for(let z=0; z<MAP_SIZE; z++){
@@ -178,7 +175,7 @@ function renderAllShapes() {
       else pushCube(m, dP, dU);
     }
   }
-  // Brown dirt color
+  // Color brown for dirt and bright yellow for gold fallback
   drawBatchedBatch(dP, dU, 4, [0.5, 0.25, 0.1, 1.0]); 
   drawBatchedBatch(goP, goU, 3, [1.0, 0.9, 0.0, 1.0]); 
 
@@ -246,7 +243,7 @@ function main() {
     if(ev.key === 'q') g_camera.panLeft();
     if(ev.key === 'e') g_camera.panRight();
     
-    // Collision
+    // Collision detection
     let c = {x: Math.round(g_camera.eye.elements[0] + 16), z: Math.round(g_camera.eye.elements[2] + 16)};
     if(g_map[c.x] && g_map[c.x][c.z] === 1) { 
       g_camera.eye.elements[0] = oldX; 
@@ -260,7 +257,7 @@ function main() {
   const fpsEl = document.getElementById('fpsCounter');
   
   function tick() {
-    // Ground collision / Sinking fix
+    // Ground collision
     if (g_camera.eye.elements[1] < 0) {
       g_camera.eye.elements[1] = 0;
       g_camera.at.elements[1] = 0;
