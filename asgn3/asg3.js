@@ -3,7 +3,7 @@
  * Danush Sivarajan, 1932047, CSE 160
  */
 
-// Shaders
+// Shaders MUST be defined at the top to avoid ReferenceErrors
 const VSHADER_SOURCE = `
 attribute vec4 a_Position;
 attribute vec2 a_UV;
@@ -35,14 +35,12 @@ void main() {
     else if (u_whichTexture == 3) texColor = texture2D(u_Sampler3, v_UV);
     else if (u_whichTexture == 4) texColor = texture2D(u_Sampler4, v_UV);
     
-    // Fallback if texture is empty/black
     if (texColor.a < 0.1) gl_FragColor = u_FragColor;
     else gl_FragColor = mix(u_FragColor, texColor, u_texColorWeight);
   }
 }
 `;
 
-// Global Variables
 let canvas, gl;
 let a_Position, a_UV, u_FragColor, u_ModelMatrix, u_ViewMatrix, u_ProjectionMatrix;
 let u_texColorWeight, u_whichTexture, u_Sampler1, u_Sampler3, u_Sampler4;
@@ -53,7 +51,6 @@ let g_map = [];
 const MAP_SIZE = 32;
 const g_textureLoaded = { 1: false, 3: false, 4: false };
 
-// Physics and Mouse
 let g_verVelocity = 0;      
 const G_GRAVITY = -0.01;    
 const G_JUMP_FORCE = 0.25;  
@@ -66,22 +63,19 @@ function buildMap() {
     g_map[x] = [];
     for (let z = 0; z < MAP_SIZE; z++) g_map[x][z] = 0;
   }
-  // Boundary 14x14 area (limit 7 from center)
-  const limit = 7;
+  const limit = 7; // 14x14 Boundary
   for (let i = -limit; i <= limit; i++) {
     let x_w1 = Math.round(limit + MAP_SIZE/2), x_w2 = Math.round(-limit + MAP_SIZE/2);
     let z_c = Math.round(i + MAP_SIZE/2);
     g_map[x_w1][z_c] = 1; g_map[x_w2][z_c] = 1;
     g_map[z_c][x_w1] = 1; g_map[z_c][x_w2] = 1;
   }
-  // Dirt Walls
   for (let x = 10; x < 22; x++) {
     for (let z = 10; z < 22; z++) {
       if (Math.random() > 0.7) g_map[x][z] = 1;
     }
   }
   g_map[16][16] = 4; // Gold in middle
-  // Clear spawn area
   for (let x = 9; x < 13; x++) {
     for (let z = 9; z < 13; z++) g_map[x][z] = 0;
   }
@@ -158,12 +152,12 @@ function renderAllShapes() {
   gl.uniformMatrix4fv(u_ViewMatrix, false, g_camera.viewMatrix.elements);
   
   let m = new Matrix4();
-  let gP = [], gU = []; // Ground
+  let gP = [], gU = []; 
   m.setTranslate(-MAP_SIZE/2, -0.8, -MAP_SIZE/2); m.scale(MAP_SIZE, 0.05, MAP_SIZE);
   pushCube(m, gP, gU);
   drawBatchedBatch(gP, gU, 1, [0.8, 0.7, 0.5, 1.0]);
 
-  let dP = [], dU = [], goP = [], goU = []; // Walls & Treasure
+  let dP = [], dU = [], goP = [], goU = []; 
   for(let x=0; x<MAP_SIZE; x++){
     for(let z=0; z<MAP_SIZE; z++){
       if(g_map[x][z] === 0) continue;
@@ -172,10 +166,10 @@ function renderAllShapes() {
       else pushCube(m, dP, dU);
     }
   }
-  drawBatchedBatch(dP, dU, 4, [0.4, 0.2, 0.0, 1.0]); // Brown fallback
-  drawBatchedBatch(goP, goU, 3, [1.0, 0.9, 0.0, 1.0]); // Gold fallback
+  drawBatchedBatch(dP, dU, 4, [0.4, 0.2, 0.0, 1.0]); 
+  drawBatchedBatch(goP, goU, 3, [1.0, 0.9, 0.0, 1.0]); 
 
-  let sP = [], sU = []; // Sky
+  let sP = [], sU = []; 
   m.setTranslate(0,0,0); m.scale(200, 200, 200); m.translate(-0.5, -0.5, -0.5);
   pushCube(m, sP, sU);
   drawBatchedBatch(sP, sU, -2, [0.5, 0.8, 1.0, 1.0]);
@@ -183,9 +177,10 @@ function renderAllShapes() {
 
 function restartGame() {
   g_gameWon = false;
-  document.getElementById('titleCanvas').style.display = 'none';
+  const tc = document.getElementById('titleCanvas');
+  if(tc) tc.style.display = 'none';
   buildMap();
-  g_camera.eye.set(new Vector3([-6, 0, -6]).elements); // Safe spawn
+  g_camera.eye.set(new Vector3([-6, 0, -6]).elements); // Inside 14x14 area
   g_camera.at.set(new Vector3([0, 0, 0]).elements);
   g_camera.updateViewMatrix();
 }
@@ -208,11 +203,10 @@ function main() {
   u_Sampler4 = gl.getUniformLocation(gl.program, 'u_Sampler4');
 
   g_camera = new Camera();
-  g_camera.updateProjectionMatrix(canvas);
+  g_camera.updateProjectionMatrix(canvas); // Pass canvas correctly
   restartGame();
   initTextures();
 
-  // Mouse rotation
   canvas.onmousedown = e => { g_mouseDown = true; g_lastMouseX = e.clientX; };
   canvas.onmouseup = () => { g_mouseDown = false; };
   canvas.onmousemove = e => {
@@ -225,22 +219,21 @@ function main() {
   document.onkeydown = (ev) => {
     if (g_gameWon) return;
     let oldX = g_camera.eye.elements[0], oldZ = g_camera.eye.elements[2];
-    if (ev.code === 'Space' && !g_isJumping) { g_verVelocity = G_JUMP_FORCE; g_isJumping = true; } // Jump
+    if (ev.code === 'Space' && !g_isJumping) { g_verVelocity = G_JUMP_FORCE; g_isJumping = true; } 
     if(ev.key === 'w') g_camera.moveForward();
     if(ev.key === 's') g_camera.moveBackwards();
     if(ev.key === 'a') g_camera.moveLeft();
     if(ev.key === 'd') g_camera.moveRight();
     if(ev.key === 'q') g_camera.panLeft();
     if(ev.key === 'e') g_camera.panRight();
-    // Collision
     let c = {x: Math.round(g_camera.eye.elements[0] + MAP_SIZE/2), z: Math.round(g_camera.eye.elements[2] + MAP_SIZE/2)};
     if(g_map[c.x] && g_map[c.x][c.z] === 1) { g_camera.eye.elements[0] = oldX; g_camera.eye.elements[2] = oldZ; }
   };
 
-  document.getElementById('titleCanvas').onclick = restartGame;
-
+  let frames = 0, fpsTime = performance.now();
+  const fpsEl = document.getElementById('fpsCounter');
+  
   function tick() {
-    // Jump Physics
     if (g_isJumping || g_camera.eye.elements[1] > 0) {
       g_camera.eye.elements[1] += g_verVelocity; g_camera.at.elements[1] += g_verVelocity;
       g_verVelocity += G_GRAVITY;
@@ -248,9 +241,13 @@ function main() {
       g_camera.updateViewMatrix();
     }
     renderAllShapes();
-    // Coordinates UI
-    let x = g_camera.eye.elements[0].toFixed(1), y = g_camera.eye.elements[1].toFixed(1), z = g_camera.eye.elements[2].toFixed(1);
-    document.getElementById('fpsCounter').textContent = `Coord: (${x}, ${y}, ${z})`;
+    frames++;
+    const now = performance.now();
+    if (now - fpsTime >= 1000 && fpsEl) {
+      let x = g_camera.eye.elements[0].toFixed(1), y = g_camera.eye.elements[1].toFixed(1), z = g_camera.eye.elements[2].toFixed(1);
+      fpsEl.textContent = `FPS: ${Math.round(frames * 1000 / (now - fpsTime))} | Coord: (${x}, ${y}, ${z})`;
+      frames = 0; fpsTime = now;
+    }
     requestAnimationFrame(tick);
   }
   tick();
