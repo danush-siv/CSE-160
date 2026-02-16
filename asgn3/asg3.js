@@ -222,17 +222,22 @@ function renderAllShapes() {
       if (v === 0) continue;
       const tx = x - 16, tz = z - 16;
       if (v === 2) {
-        m.setTranslate(tx, -0.8, tz);
+        m.setTranslate(tx + 0.5, -0.8, tz + 0.5);
+        m.scale(0.75, 1, 0.75);
+        m.translate(-0.5, -0.5, -0.5);
         pushCube(m, bndP, bndU);
       } else if (v === 4) {
         m.setTranslate(tx, -0.8, tz);
         pushCube(m, goP, goU);
       } else {
-        // v === 1 or 3: brown wall. Bottom cube always; top cube only if 3.
-        m.setTranslate(tx, -0.8, tz);
+        m.setTranslate(tx + 0.5, -0.8, tz + 0.5);
+        m.scale(0.75, 1, 0.75);
+        m.translate(-0.5, -0.5, -0.5);
         pushCube(m, dP, dU);
         if (v === 3) {
-          m.setTranslate(tx, 0.2, tz);
+          m.setTranslate(tx + 0.5, 0.2, tz + 0.5);
+          m.scale(0.75, 1, 0.75);
+          m.translate(-0.5, -0.5, -0.5);
           pushCube(m, dP, dU);
         }
       }

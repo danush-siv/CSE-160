@@ -2,23 +2,51 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>CSE 160 Assignment 3 — Desert Ruins!</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASG3 - Desert Ruins</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23d4a017'/><rect x='4' y='4' width='24' height='24' fill='%23f0c040'/></svg>" type="image/svg+xml" />
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+    .info p { margin: 0.25em 0; font-weight: bold; }
+    canvas { display: block; margin: 10px 0; border: 2px solid #333; background: #1a1a2e; }
+    .what { margin-top: 1.5em; padding: 1em; background: #f0f0f0; border-radius: 6px; max-width: 560px; }
+    .what ol { margin: 0.5em 0; padding-left: 20px; }
+    .what p { margin: 0.5em 0; }
+  </style>
 </head>
 <body onload="main()">
-  <h1>Desert Ruins!</h1>
+  <div class="info">
+    <h1 style="margin-bottom: 0.25em;">ASG3 - Desert Ruins</h1>
+    <p>Name: Danush Sivarajan</p>
+    <p>Email: dsivaraj@ucsc.edu</p>
+    <p>ID: 1932047</p>
+  </div>
+
   <p><strong>Goal:</strong> Find the golden treasure by going through the maze or destroying the blocks.</p>
+
   <div style="position:relative; display:inline-block;">
-    <canvas id="webgl" width="600" height="600" style="display:block; width:600px; height:600px; background:#1a1a2e;">Please use a browser that supports canvas.</canvas>
+    <canvas id="webgl" width="600" height="600" style="width:600px; height:600px;">Please use a browser that supports canvas.</canvas>
     <canvas id="titleCanvas" width="600" height="600" style="position:absolute; top:0; left:0; pointer-events:auto; display:none;"></canvas>
   </div>
+
   <p id="fpsCounter">FPS: --</p>
-  <p id="gameMessage" style="font-weight:bold; color: green;"></p>
   <p>
     <strong>Controls:</strong> W/S — forward/back &nbsp; A/D — left/right &nbsp;
-    Q/E — turn left/right &nbsp; Mouse drag — look around &nbsp;
+    Q/E — turn &nbsp; Mouse drag — look around &nbsp;
     Space — jump &nbsp; R — add block &nbsp; F — remove block
   </p>
+
+  <div class="what">
+    <p style="font-weight: bold; margin-top: 0;">What You're Looking At:</p>
+    <ol>
+      <li><strong>Canvas:</strong> A 3D maze. You move through corridors; brown walls are two blocks tall. The gold block is the goal.</li>
+      <li><strong>Goal:</strong> Find the yellow gold block. Look at it and left-click to win. You can go through the maze or break walls with F.</li>
+      <li><strong>Controls:</strong> W/S/A/D to move, Q/E or mouse drag to turn, Space to jump. R adds a wall in front, F removes one (block by block). Gold cannot be broken.</li>
+    </ol>
+    <p style="font-weight: bold; margin: 0.75em 0 0.25em 0;">How to Play:</p>
+    <p style="margin: 0.25em 0;">Move to the gold block, face it, and left-click to show the win screen. Click the overlay to restart.</p>
+  </div>
+
   <script src="./lib/cuon-matrix-cse160.js"></script>
   <script src="./lib/cuon-utils.js"></script>
   <script src="./lib/webgl-utils.js"></script>
