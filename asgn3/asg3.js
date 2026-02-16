@@ -1,6 +1,6 @@
 /**
  * CSE 160 Assignment 3 — Desert Ruins
- * Ground + sky + textured walls from map, camera, add/delete blocks, simple "find the treasure" game.
+ * Danush Sivarajan, 1932047, CSE 160
  */
 
 const VSHADER_SOURCE = `
@@ -34,8 +34,13 @@ void main() {
     else if (u_whichTexture == 3) texColor = texture2D(u_Sampler3, v_UV);
     else if (u_whichTexture == 4) texColor = texture2D(u_Sampler4, v_UV);
     
-    // Mix texture and color based on weight
-    gl_FragColor = mix(u_FragColor, texColor, u_texColorWeight);
+    // Final check: if the texture didn't load (color is transparent/black), 
+    // we use u_FragColor. Otherwise mix based on weight.
+    if (texColor.a < 0.1) {
+       gl_FragColor = u_FragColor;
+    } else {
+       gl_FragColor = mix(u_FragColor, texColor, u_texColorWeight);
+    }
   }
 }
 `;
@@ -51,6 +56,10 @@ let g_gameWon = false;
 let g_map = [];
 const MAP_SIZE = 32;
 const g_textureLoaded = { 1: false, 3: false, 4: false };
+
+// Mouse control variables
+let g_mouseDown = false;
+let g_lastMouseX = -1;
 
 function buildMap() {
   for (let x = 0; x < MAP_SIZE; x++) {
@@ -73,6 +82,13 @@ function buildMap() {
     }
   }
   g_map[16][16] = 4; // Gold treasure block
+
+  // FIXED: Ensure spawn point is always clear
+  for (let x = 1; x < 6; x++) {
+    for (let z = 1; z < 6; z++) {
+      g_map[x][z] = 0;
+    }
+  }
 }
 
 function initTextures() {
@@ -81,7 +97,6 @@ function initTextures() {
     { unit: 3, file: 'gold.jpg', sampler: u_Sampler3 },
     { unit: 4, file: 'dirt.jpg', sampler: u_Sampler4 }
   ];
-  const base = window.location.href.replace(/[^/]*$/, '');
 
   textureData.forEach(data => {
     let texture = gl.createTexture();
@@ -96,9 +111,9 @@ function initTextures() {
       gl.uniform1i(data.sampler, data.unit);
     };
     image.onerror = function() {
-      console.error("Failed to load: " + data.file + ". Reverting to solid colors.");
+      console.warn("Failed to load texture: " + data.file + ". Showing block color.");
     };
-    image.src = base + data.file;
+    image.src = data.file;
   });
 }
 
@@ -106,6 +121,8 @@ function drawBatchedBatch(positions, uvs, textureNum, color) {
   if (positions.length === 0) return;
   gl.uniform1i(u_whichTexture, textureNum);
   gl.uniform4f(u_FragColor, color[0], color[1], color[2], color[3]);
+  
+  // Set weight to 1 only if the texture successfully loaded
   const useTexture = textureNum >= 0 && g_textureLoaded[textureNum];
   gl.uniform1f(u_texColorWeight, useTexture ? 1.0 : 0.0);
   
@@ -124,7 +141,6 @@ function drawBatchedBatch(positions, uvs, textureNum, color) {
   gl.drawArrays(gl.TRIANGLES, 0, positions.length / 3);
 }
 
-// Global cube data
 const V = [0,0,0, 1,1,0, 1,0,0, 0,0,0, 0,1,0, 1,1,0, 0,1,0, 1,1,1, 1,1,0, 0,1,0, 0,1,1, 1,1,1, 0,0,0, 1,0,1, 0,0,1, 0,0,0, 1,0,0, 1,0,1, 1,0,0, 1,1,1, 1,1,0, 1,0,0, 1,0,1, 1,1,1, 0,0,0, 0,1,1, 0,1,0, 0,0,0, 0,0,1, 0,1,1, 0,0,1, 1,1,1, 0,1,1, 0,0,1, 1,0,1, 1,1,1];
 const U = [0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1];
 
@@ -138,7 +154,6 @@ function pushCube(matrix, posArr, uvArr) {
 }
 
 function renderAllShapes() {
-  // Check for win condition
   const cell = {x: Math.round(g_camera.eye.elements[0] + MAP_SIZE/2), z: Math.round(g_camera.eye.elements[2] + MAP_SIZE/2)};
   if (!g_gameWon && g_map[cell.x] && g_map[cell.x][cell.z] === 4) {
       g_gameWon = true;
@@ -158,13 +173,13 @@ function renderAllShapes() {
 
   let m = new Matrix4();
   
-  // Ground (Sand texture)
+  // Ground
   let gP = [], gU = [];
   m.setTranslate(-MAP_SIZE/2, -0.8, -MAP_SIZE/2); m.scale(MAP_SIZE, 0.05, MAP_SIZE);
   pushCube(m, gP, gU);
-  drawBatchedBatch(gP, gU, 1, [0.9, 0.8, 0.6, 1.0]);
+  drawBatchedBatch(gP, gU, 1, [0.8, 0.7, 0.5, 1.0]);
 
-  // Maze Walls & Treasure
+  // Maze Walls (Dirt) & Treasure
   let dP = [], dU = [], goP = [], goU = [];
   for(let x=0; x<MAP_SIZE; x++){
     for(let z=0; z<MAP_SIZE; z++){
@@ -174,12 +189,12 @@ function renderAllShapes() {
       else pushCube(m, dP, dU);
     }
   }
-  drawBatchedBatch(dP, dU, 4, [0.4, 0.3, 0.2, 1.0]); // Dirt
-  drawBatchedBatch(goP, goU, 3, [1.0, 0.8, 0.0, 1.0]); // Gold
+  drawBatchedBatch(dP, dU, 4, [0.4, 0.2, 0.0, 1.0]); 
+  drawBatchedBatch(goP, goU, 3, [1.0, 0.9, 0.0, 1.0]); 
 
   // Sky
   let sP = [], sU = [];
-  m.setTranslate(0,0,0); m.scale(100, 100, 100); m.translate(-0.5, -0.5, -0.5);
+  m.setTranslate(0,0,0); m.scale(200, 200, 200); m.translate(-0.5, -0.5, -0.5);
   pushCube(m, sP, sU);
   drawBatchedBatch(sP, sU, -2, [0.5, 0.8, 1.0, 1.0]);
 }
@@ -188,7 +203,8 @@ function restartGame() {
   g_gameWon = false;
   document.getElementById('titleCanvas').style.display = 'none';
   buildMap();
-  g_camera.eye.set(new Vector3([-10, 0, -10]).elements); // Safe spawn
+  // FIXED: Spawn at a clear corner coordinate
+  g_camera.eye.set(new Vector3([-12, 0, -12]).elements); 
   g_camera.at.set(new Vector3([0, 0, 0]).elements);
   g_camera.updateViewMatrix();
 }
@@ -215,9 +231,20 @@ function main() {
 
   g_camera = new Camera();
   g_camera.updateProjectionMatrix(canvas);
-  gl.viewport(0, 0, canvas.width, canvas.height);
+  
   restartGame();
   initTextures();
+
+  // Mouse drag implementation
+  canvas.onmousedown = function(ev) { g_mouseDown = true; g_lastMouseX = ev.clientX; };
+  canvas.onmouseup = function(ev) { g_mouseDown = false; };
+  canvas.onmousemove = function(ev) {
+    if (g_mouseDown) {
+      let deltaX = ev.clientX - g_lastMouseX;
+      g_camera.panRight(-deltaX * 0.2); // Adjust sensitivity here
+      g_lastMouseX = ev.clientX;
+    }
+  };
 
   document.onkeydown = (ev) => {
     if (g_gameWon) return;
@@ -231,7 +258,6 @@ function main() {
     if(ev.key === 'q') g_camera.panLeft();
     if(ev.key === 'e') g_camera.panRight();
     
-    // Collision
     let cell = {x: Math.round(g_camera.eye.elements[0] + MAP_SIZE/2), z: Math.round(g_camera.eye.elements[2] + MAP_SIZE/2)};
     if(g_map[cell.x] && g_map[cell.x][cell.z] === 1) {
         g_camera.eye.elements[0] = oldX;
@@ -241,20 +267,7 @@ function main() {
 
   document.getElementById('titleCanvas').onclick = restartGame;
 
-  window.addEventListener('resize', function() {
-    if (!canvas || !gl || !g_camera) return;
-    const w = canvas.clientWidth || 600;
-    const h = canvas.clientHeight || 600;
-    if (canvas.width !== w || canvas.height !== h) {
-      canvas.width = w;
-      canvas.height = h;
-      gl.viewport(0, 0, canvas.width, canvas.height);
-      g_camera.updateProjectionMatrix(canvas);
-    }
-  });
-
-  let frames = 0;
-  let fpsTime = performance.now();
+  let frames = 0, fpsTime = performance.now();
   const fpsEl = document.getElementById('fpsCounter');
   function tick() {
     renderAllShapes();
@@ -262,8 +275,7 @@ function main() {
     const now = performance.now();
     if (now - fpsTime >= 1000 && fpsEl) {
       fpsEl.textContent = 'FPS: ' + Math.round(frames * 1000 / (now - fpsTime));
-      frames = 0;
-      fpsTime = now;
+      frames = 0; fpsTime = now;
     }
     requestAnimationFrame(tick);
   }
