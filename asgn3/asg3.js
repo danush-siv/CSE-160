@@ -142,8 +142,12 @@ function transformCubeAndAppend(matrix, positions, uvs) {
 
 function setupCanvas() {
   canvas = document.getElementById('webgl');
+  if (!canvas) { console.error('Canvas #webgl not found'); return false; }
   gl = canvas.getContext('webgl', { preserveDrawingBuffer: true });
+  if (!gl) { console.error('WebGL not supported'); return false; }
   gl.enable(gl.DEPTH_TEST);
+  gl.clearColor(0.5, 0.8, 1, 1);
+  return true;
 }
 
 function initTextures() {
@@ -236,30 +240,40 @@ function renderAllShapes() {
   drawBatchedBatch(dPos, dUv, 4, [1,1,1,1]);
   drawBatchedBatch(goPos, goUv, 3, [1,1,1,1]);
 
-  // Draw Sky
+  // Draw Sky last (inside of big cube)
+  gl.depthMask(false);
+  gl.cullFace(gl.FRONT);
   gl.uniform1f(u_texColorWeight, 0);
   var sPos = [], sUv = [];
-  m.setIdentity(); m.scale(100, 100, 100); m.translate(-0.5, -0.5, -0.5);
+  m.setIdentity(); m.translate(-500, -500, -500); m.scale(1000, 1000, 1000);
   transformCubeAndAppend(m, sPos, sUv);
   drawBatchedBatch(sPos, sUv, -2, [0.5, 0.8, 1, 1]);
+  gl.cullFace(gl.BACK);
+  gl.depthMask(true);
 }
 
 function main() {
-  setupCanvas();
+  if (!setupCanvas()) return;
   connectVariablesToGLSL();
+  if (!gl.program) { console.error('Shaders failed to compile'); return; }
   g_camera = new Camera();
+  g_camera.updateProjectionMatrix(canvas);
   buildMap();
   restartGame();
   initTextures();
   document.onkeydown = keydown;
-  document.getElementById('titleCanvas').onclick = restartGame;
+  var tc = document.getElementById('titleCanvas');
+  if (tc) tc.onclick = restartGame;
   
   function tick() { renderAllShapes(); requestAnimationFrame(tick); }
   tick();
 }
 
 function connectVariablesToGLSL() {
-  if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) return;
+  if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
+    console.error('initShaders failed');
+    return;
+  }
   a_Position = gl.getAttribLocation(gl.program, 'a_Position');
   a_UV = gl.getAttribLocation(gl.program, 'a_UV');
   u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor');
