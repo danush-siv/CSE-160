@@ -22,29 +22,20 @@ varying vec2 v_UV;
 uniform vec4 u_FragColor;
 uniform float u_texColorWeight;
 uniform int u_whichTexture;
-uniform sampler2D u_Sampler0;
-uniform sampler2D u_Sampler1;
-uniform sampler2D u_Sampler2;
-uniform sampler2D u_Sampler3;
-uniform sampler2D u_Sampler4;
+uniform sampler2D u_Sampler1; // Sand
+uniform sampler2D u_Sampler3; // Gold
+uniform sampler2D u_Sampler4; // Dirt
 void main() {
   if (u_whichTexture == -2) {
-    gl_FragColor = u_FragColor;
+    gl_FragColor = u_FragColor; // Sky
   } else {
-    vec4 texColor;
-    if (u_whichTexture == 0) texColor = texture2D(u_Sampler0, v_UV);
-    else if (u_whichTexture == 1) texColor = texture2D(u_Sampler1, v_UV);
-    else if (u_whichTexture == 2) texColor = texture2D(u_Sampler2, v_UV);
+    vec4 texColor = vec4(1.0, 1.0, 1.0, 1.0);
+    if (u_whichTexture == 1) texColor = texture2D(u_Sampler1, v_UV);
     else if (u_whichTexture == 3) texColor = texture2D(u_Sampler3, v_UV);
     else if (u_whichTexture == 4) texColor = texture2D(u_Sampler4, v_UV);
-    else texColor = u_FragColor;
     
-    // Fallback: If texture is missing (black), use base color
-    if (texColor.a < 0.1) {
-        gl_FragColor = u_FragColor;
-    } else {
-        gl_FragColor = (1.0 - u_texColorWeight) * u_FragColor + u_texColorWeight * texColor;
-    }
+    // Mix texture and color based on weight
+    gl_FragColor = mix(u_FragColor, texColor, u_texColorWeight);
   }
 }
 `;
@@ -53,7 +44,7 @@ let canvas, gl;
 let a_Position, a_UV;
 let u_FragColor, u_ModelMatrix, u_ViewMatrix, u_ProjectionMatrix;
 let u_texColorWeight, u_whichTexture;
-let u_Sampler0, u_Sampler1, u_Sampler2, u_Sampler3, u_Sampler4;
+let u_Sampler1, u_Sampler3, u_Sampler4;
 
 let g_camera;
 let g_gameWon = false;
@@ -67,7 +58,6 @@ function buildMap() {
       g_map[x][z] = 0;
     }
   }
-  
   // Boundary walls
   for (let i = 0; i < MAP_SIZE; i++) {
     g_map[0][i] = 1;
@@ -75,38 +65,37 @@ function buildMap() {
     g_map[i][0] = 1;
     g_map[i][MAP_SIZE - 1] = 1;
   }
-
   // Maze Walls (Dirt)
   for (let x = 2; x < MAP_SIZE - 2; x += 2) {
     for (let z = 2; z < MAP_SIZE - 2; z++) {
       if (Math.random() > 0.6) g_map[x][z] = 1;
     }
   }
-  g_map[16][16] = 4; // Gold
+  g_map[16][16] = 4; // Gold treasure block
 }
 
 function initTextures() {
-  const textureUnits = [1, 3, 4]; // Sand, Gold, Dirt
-  const files = ['sand.jpg', 'gold.jpg', 'dirt.jpg'];
-  const samplers = [u_Sampler1, u_Sampler3, u_Sampler4];
-  // Resolve paths relative to the current page so textures load from the same folder as the HTML
-  const base = window.location.href.replace(/[^/]*$/, '');
+  const textureData = [
+    { unit: 1, file: 'sand.jpg', sampler: u_Sampler1 },
+    { unit: 3, file: 'gold.jpg', sampler: u_Sampler3 },
+    { unit: 4, file: 'dirt.jpg', sampler: u_Sampler4 }
+  ];
 
-  textureUnits.forEach((unit, i) => {
+  textureData.forEach(data => {
     let texture = gl.createTexture();
     let image = new Image();
     image.onload = function() {
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
-      gl.activeTexture(gl.TEXTURE0 + unit);
+      gl.activeTexture(gl.TEXTURE0 + data.unit);
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-      gl.uniform1i(samplers[i], unit);
+      gl.uniform1i(data.sampler, data.unit);
     };
     image.onerror = function() {
-       console.log("Failed to load: " + files[i] + ". Using solid colors.");
+      console.error("Failed to load: " + data.file + ". Reverting to solid colors.");
     };
-    image.src = base + files[i];
+    image.src = data.file;
   });
 }
 
@@ -118,14 +107,12 @@ function drawBatchedBatch(positions, uvs, textureNum, color) {
   
   gl.uniformMatrix4fv(u_ModelMatrix, false, new Matrix4().elements);
   
-  let pBuf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, pBuf);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
   gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, 0, 0);
   gl.enableVertexAttribArray(a_Position);
 
-  let uBuf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, uBuf);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvs), gl.STATIC_DRAW);
   gl.vertexAttribPointer(a_UV, 2, gl.FLOAT, false, 0, 0);
   gl.enableVertexAttribArray(a_UV);
@@ -133,7 +120,7 @@ function drawBatchedBatch(positions, uvs, textureNum, color) {
   gl.drawArrays(gl.TRIANGLES, 0, positions.length / 3);
 }
 
-// Cube vertices and UVs (Simplified)
+// Global cube data
 const V = [0,0,0, 1,1,0, 1,0,0, 0,0,0, 0,1,0, 1,1,0, 0,1,0, 1,1,1, 1,1,0, 0,1,0, 0,1,1, 1,1,1, 0,0,0, 1,0,1, 0,0,1, 0,0,0, 1,0,0, 1,0,1, 1,0,0, 1,1,1, 1,1,0, 1,0,0, 1,0,1, 1,1,1, 0,0,0, 0,1,1, 0,1,0, 0,0,0, 0,0,1, 0,1,1, 0,0,1, 1,1,1, 0,1,1, 0,0,1, 1,0,1, 1,1,1];
 const U = [0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1];
 
@@ -147,19 +134,33 @@ function pushCube(matrix, posArr, uvArr) {
 }
 
 function renderAllShapes() {
+  // Check for win condition
+  const cell = {x: Math.round(g_camera.eye.elements[0] + MAP_SIZE/2), z: Math.round(g_camera.eye.elements[2] + MAP_SIZE/2)};
+  if (!g_gameWon && g_map[cell.x] && g_map[cell.x][cell.z] === 4) {
+      g_gameWon = true;
+      let tc = document.getElementById('titleCanvas');
+      tc.style.display = 'block';
+      let ctx = tc.getContext('2d');
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(0,0,600,600);
+      ctx.fillStyle = 'gold';
+      ctx.font = '30px Arial';
+      ctx.fillText("GOLD FOUND! Click to Restart", 100, 300);
+  }
+
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.uniformMatrix4fv(u_ProjectionMatrix, false, g_camera.projectionMatrix.elements);
   gl.uniformMatrix4fv(u_ViewMatrix, false, g_camera.viewMatrix.elements);
 
   let m = new Matrix4();
   
-  // Ground (Sand)
+  // Ground (Sand texture)
   let gP = [], gU = [];
   m.setTranslate(-MAP_SIZE/2, -0.8, -MAP_SIZE/2); m.scale(MAP_SIZE, 0.05, MAP_SIZE);
   pushCube(m, gP, gU);
   drawBatchedBatch(gP, gU, 1, [0.9, 0.8, 0.6, 1.0]);
 
-  // Map
+  // Maze Walls & Treasure
   let dP = [], dU = [], goP = [], goU = [];
   for(let x=0; x<MAP_SIZE; x++){
     for(let z=0; z<MAP_SIZE; z++){
@@ -169,19 +170,28 @@ function renderAllShapes() {
       else pushCube(m, dP, dU);
     }
   }
-  drawBatchedBatch(dP, dU, 4, [0.5, 0.3, 0.1, 1.0]); // Dirt Walls
-  drawBatchedBatch(goP, goU, 3, [1.0, 0.9, 0.0, 1.0]); // Gold Treasure
+  drawBatchedBatch(dP, dU, 4, [0.4, 0.3, 0.2, 1.0]); // Dirt
+  drawBatchedBatch(goP, goU, 3, [1.0, 0.8, 0.0, 1.0]); // Gold
 
   // Sky
   let sP = [], sU = [];
   m.setTranslate(0,0,0); m.scale(100, 100, 100); m.translate(-0.5, -0.5, -0.5);
   pushCube(m, sP, sU);
-  drawBatchedBatch(sP, sU, -2, [0.5, 0.7, 1.0, 1.0]);
+  drawBatchedBatch(sP, sU, -2, [0.5, 0.8, 1.0, 1.0]);
+}
+
+function restartGame() {
+  g_gameWon = false;
+  document.getElementById('titleCanvas').style.display = 'none';
+  buildMap();
+  g_camera.eye.set(new Vector3([-10, 0, -10]).elements); // Safe spawn
+  g_camera.at.set(new Vector3([0, 0, 0]).elements);
+  g_camera.updateViewMatrix();
 }
 
 function main() {
   canvas = document.getElementById('webgl');
-  gl = canvas.getContext('webgl', { preserveDrawingBuffer: true });
+  gl = canvas.getContext('webgl');
   if(!gl) return;
   gl.enable(gl.DEPTH_TEST);
 
@@ -200,11 +210,11 @@ function main() {
   u_Sampler4 = gl.getUniformLocation(gl.program, 'u_Sampler4');
 
   g_camera = new Camera();
-  g_camera.eye.set(new Vector3([-10, 0, -10])); 
-  buildMap();
+  restartGame();
   initTextures();
 
   document.onkeydown = (ev) => {
+    if (g_gameWon) return;
     let oldX = g_camera.eye.elements[0];
     let oldZ = g_camera.eye.elements[2];
     
@@ -215,13 +225,15 @@ function main() {
     if(ev.key === 'q') g_camera.panLeft();
     if(ev.key === 'e') g_camera.panRight();
     
-    // Collision logic
+    // Collision
     let cell = {x: Math.round(g_camera.eye.elements[0] + MAP_SIZE/2), z: Math.round(g_camera.eye.elements[2] + MAP_SIZE/2)};
     if(g_map[cell.x] && g_map[cell.x][cell.z] === 1) {
         g_camera.eye.elements[0] = oldX;
         g_camera.eye.elements[2] = oldZ;
     }
   };
+
+  document.getElementById('titleCanvas').onclick = restartGame;
 
   function tick() { renderAllShapes(); requestAnimationFrame(tick); }
   tick();
