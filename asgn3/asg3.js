@@ -3,7 +3,6 @@
  * Danush Sivarajan, 1932047, CSE 160
  */
 
-// Shaders MUST be defined at the top to avoid ReferenceErrors
 const VSHADER_SOURCE = `
 attribute vec4 a_Position;
 attribute vec2 a_UV;
@@ -35,6 +34,7 @@ void main() {
     else if (u_whichTexture == 3) texColor = texture2D(u_Sampler3, v_UV);
     else if (u_whichTexture == 4) texColor = texture2D(u_Sampler4, v_UV);
     
+    // Fallback to solid color if texture failed to load (avoiding black boxes)
     if (texColor.a < 0.1) gl_FragColor = u_FragColor;
     else gl_FragColor = mix(u_FragColor, texColor, u_texColorWeight);
   }
@@ -63,19 +63,26 @@ function buildMap() {
     g_map[x] = [];
     for (let z = 0; z < MAP_SIZE; z++) g_map[x][z] = 0;
   }
-  const limit = 7; // 14x14 Boundary
+
+  // FIXED: Boundary walls creating a 14x14 area (limit 7 from array center 16)
+  const limit = 7; 
   for (let i = -limit; i <= limit; i++) {
-    let x_w1 = Math.round(limit + MAP_SIZE/2), x_w2 = Math.round(-limit + MAP_SIZE/2);
-    let z_c = Math.round(i + MAP_SIZE/2);
+    let x_w1 = 16 + limit, x_w2 = 16 - limit;
+    let z_c = 16 + i;
     g_map[x_w1][z_c] = 1; g_map[x_w2][z_c] = 1;
     g_map[z_c][x_w1] = 1; g_map[z_c][x_w2] = 1;
   }
+
+  // Maze Walls (Dirt) inside the 14x14 area
   for (let x = 10; x < 22; x++) {
     for (let z = 10; z < 22; z++) {
       if (Math.random() > 0.7) g_map[x][z] = 1;
     }
   }
-  g_map[16][16] = 4; // Gold in middle
+
+  g_map[16][16] = 4; // Gold treasure block at (0,0) world coords
+
+  // FIXED: Ensure 5x5 spawn zone is empty to prevent starting inside a block
   for (let x = 9; x < 13; x++) {
     for (let z = 9; z < 13; z++) g_map[x][z] = 0;
   }
@@ -136,7 +143,7 @@ function pushCube(matrix, posArr, uvArr) {
 }
 
 function renderAllShapes() {
-  const cell = {x: Math.round(g_camera.eye.elements[0] + MAP_SIZE/2), z: Math.round(g_camera.eye.elements[2] + MAP_SIZE/2)};
+  const cell = {x: Math.round(g_camera.eye.elements[0] + 16), z: Math.round(g_camera.eye.elements[2] + 16)};
   if (!g_gameWon && g_map[cell.x] && g_map[cell.x][cell.z] === 4) {
       g_gameWon = true;
       let tc = document.getElementById('titleCanvas');
@@ -153,7 +160,7 @@ function renderAllShapes() {
   
   let m = new Matrix4();
   let gP = [], gU = []; 
-  m.setTranslate(-MAP_SIZE/2, -0.8, -MAP_SIZE/2); m.scale(MAP_SIZE, 0.05, MAP_SIZE);
+  m.setTranslate(-16, -0.8, -16); m.scale(32, 0.05, 32);
   pushCube(m, gP, gU);
   drawBatchedBatch(gP, gU, 1, [0.8, 0.7, 0.5, 1.0]);
 
@@ -161,7 +168,7 @@ function renderAllShapes() {
   for(let x=0; x<MAP_SIZE; x++){
     for(let z=0; z<MAP_SIZE; z++){
       if(g_map[x][z] === 0) continue;
-      m.setTranslate(x - MAP_SIZE/2, -0.8, z - MAP_SIZE/2);
+      m.setTranslate(x - 16, -0.8, z - 16);
       if(g_map[x][z] === 4) pushCube(m, goP, goU);
       else pushCube(m, dP, dU);
     }
@@ -177,10 +184,10 @@ function renderAllShapes() {
 
 function restartGame() {
   g_gameWon = false;
-  const tc = document.getElementById('titleCanvas');
-  if(tc) tc.style.display = 'none';
+  document.getElementById('titleCanvas').style.display = 'none';
   buildMap();
-  g_camera.eye.set(new Vector3([-6, 0, -6]).elements); // Inside 14x14 area
+  // FIXED: Spawn at world coordinates (-5.5, 0.0, -5.5) looking at center
+  g_camera.eye.set(new Vector3([-5.5, 0.0, -5.5]).elements); 
   g_camera.at.set(new Vector3([0, 0, 0]).elements);
   g_camera.updateViewMatrix();
 }
@@ -203,7 +210,7 @@ function main() {
   u_Sampler4 = gl.getUniformLocation(gl.program, 'u_Sampler4');
 
   g_camera = new Camera();
-  g_camera.updateProjectionMatrix(canvas); // Pass canvas correctly
+  g_camera.updateProjectionMatrix(canvas);
   restartGame();
   initTextures();
 
@@ -226,13 +233,16 @@ function main() {
     if(ev.key === 'd') g_camera.moveRight();
     if(ev.key === 'q') g_camera.panLeft();
     if(ev.key === 'e') g_camera.panRight();
-    let c = {x: Math.round(g_camera.eye.elements[0] + MAP_SIZE/2), z: Math.round(g_camera.eye.elements[2] + MAP_SIZE/2)};
+    
+    // Boundary collision check
+    let c = {x: Math.round(g_camera.eye.elements[0] + 16), z: Math.round(g_camera.eye.elements[2] + 16)};
     if(g_map[c.x] && g_map[c.x][c.z] === 1) { g_camera.eye.elements[0] = oldX; g_camera.eye.elements[2] = oldZ; }
   };
 
+  document.getElementById('titleCanvas').onclick = restartGame;
+
   let frames = 0, fpsTime = performance.now();
   const fpsEl = document.getElementById('fpsCounter');
-  
   function tick() {
     if (g_isJumping || g_camera.eye.elements[1] > 0) {
       g_camera.eye.elements[1] += g_verVelocity; g_camera.at.elements[1] += g_verVelocity;
