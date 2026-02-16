@@ -198,7 +198,7 @@ function main() {
   u_Sampler4 = gl.getUniformLocation(gl.program, 'u_Sampler4');
 
   g_camera = new Camera();
-  g_camera.eye.set(new Vector3([-10, 0, -10]).elements); 
+  g_camera.eye.set(new Vector3([-10, 0, -10])); 
   buildMap();
   initTextures();
 
