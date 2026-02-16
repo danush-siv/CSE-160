@@ -1,6 +1,5 @@
 /**
  * CSE 160 Assignment 3 — Desert Ruins
- * Danush Sivarajan, CSE 160, UCSC, 1932047
  * Ground + sky + textured walls from map, camera, add/delete blocks, simple "find the treasure" game.
  */
 
@@ -39,8 +38,13 @@ void main() {
     else if (u_whichTexture == 3) texColor = texture2D(u_Sampler3, v_UV);
     else if (u_whichTexture == 4) texColor = texture2D(u_Sampler4, v_UV);
     else texColor = u_FragColor;
-    float t = u_texColorWeight;
-    gl_FragColor = (1.0 - t) * u_FragColor + t * texColor;
+    
+    // Fallback: If texture is missing (black), use base color
+    if (texColor.a < 0.1) {
+        gl_FragColor = u_FragColor;
+    } else {
+        gl_FragColor = (1.0 - u_texColorWeight) * u_FragColor + u_texColorWeight * texColor;
+    }
   }
 }
 `;
@@ -52,76 +56,73 @@ let u_texColorWeight, u_whichTexture;
 let u_Sampler0, u_Sampler1, u_Sampler2, u_Sampler3, u_Sampler4;
 
 let g_camera;
-let g_mouseDown = false;
-let g_lastMouseX = 0, g_lastMouseY = 0;
 let g_gameWon = false;
-const BLOCK_SCALE = 1.0;
-let g_frameCount = 0;
-let g_lastFpsTime = 0;
-
 let g_map = [];
 const MAP_SIZE = 32;
 
 function buildMap() {
-  for (var x = 0; x < MAP_SIZE; x++) {
+  for (let x = 0; x < MAP_SIZE; x++) {
     g_map[x] = [];
-    for (var z = 0; z < MAP_SIZE; z++) {
+    for (let z = 0; z < MAP_SIZE; z++) {
       g_map[x][z] = 0;
     }
   }
   
-  // Outer boundary walls
-  for (var i = 0; i < MAP_SIZE; i++) {
+  // Boundary walls
+  for (let i = 0; i < MAP_SIZE; i++) {
     g_map[0][i] = 1;
     g_map[MAP_SIZE - 1][i] = 1;
     g_map[i][0] = 1;
     g_map[i][MAP_SIZE - 1] = 1;
   }
 
-  // Generate Maze Walls (Value 1 = Dirt)
-  for (var x = 2; x < MAP_SIZE - 2; x += 2) {
-    for (var z = 2; z < MAP_SIZE - 2; z++) {
-      if (Math.random() > 0.4) g_map[x][z] = 1;
+  // Maze Walls (Dirt)
+  for (let x = 2; x < MAP_SIZE - 2; x += 2) {
+    for (let z = 2; z < MAP_SIZE - 2; z++) {
+      if (Math.random() > 0.6) g_map[x][z] = 1;
     }
   }
-
-  // Singular Golden Block (Value 4)
-  g_map[16][16] = 4;
-  // Clear starting area
-  g_map[4][4] = 0; 
+  g_map[16][16] = 4; // Gold
 }
 
-function worldToMap(wx, wz) {
-  const gx = Math.round(wx + MAP_SIZE / 2);
-  const gz = Math.round(wz + MAP_SIZE / 2);
-  if (gx >= 0 && gx < MAP_SIZE && gz >= 0 && gz < MAP_SIZE) return { x: gx, z: gz };
-  return null;
-}
+function initTextures() {
+  const textureUnits = [1, 3, 4]; // Sand, Gold, Dirt
+  const files = ['sand.jpg', 'gold.jpg', 'dirt.jpg'];
+  const samplers = [u_Sampler1, u_Sampler3, u_Sampler4];
 
-// Collision Check: Prevents walking through walls (1)
-function canMove(newX, newZ) {
-  const cell = worldToMap(newX, newZ);
-  if (!cell) return false;
-  if (g_map[cell.x][cell.z] === 1) return false;
-  return true;
+  textureUnits.forEach((unit, i) => {
+    let texture = gl.createTexture();
+    let image = new Image();
+    image.onload = function() {
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+      gl.activeTexture(gl.TEXTURE0 + unit);
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+      gl.uniform1i(samplers[i], unit);
+    };
+    image.onerror = function() {
+       console.log("Failed to load: " + files[i] + ". Using solid colors.");
+    };
+    image.src = files[i];
+  });
 }
 
 function drawBatchedBatch(positions, uvs, textureNum, color) {
   if (positions.length === 0) return;
   gl.uniform1i(u_whichTexture, textureNum);
   gl.uniform4f(u_FragColor, color[0], color[1], color[2], color[3]);
-  gl.uniform1f(u_texColorWeight, textureNum >= 0 ? 1 : 0);
+  gl.uniform1f(u_texColorWeight, textureNum >= 0 ? 1.0 : 0.0);
   
-  var idMatrix = new Matrix4();
-  gl.uniformMatrix4fv(u_ModelMatrix, false, idMatrix.elements);
+  gl.uniformMatrix4fv(u_ModelMatrix, false, new Matrix4().elements);
   
-  const pBuf = gl.createBuffer();
+  let pBuf = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, pBuf);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
   gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, 0, 0);
   gl.enableVertexAttribArray(a_Position);
 
-  const uBuf = gl.createBuffer();
+  let uBuf = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, uBuf);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvs), gl.STATIC_DRAW);
   gl.vertexAttribPointer(a_UV, 2, gl.FLOAT, false, 0, 0);
@@ -130,191 +131,60 @@ function drawBatchedBatch(positions, uvs, textureNum, color) {
   gl.drawArrays(gl.TRIANGLES, 0, positions.length / 3);
 }
 
-var CUBE_VERTS = [0,0,0, 1,1,0, 1,0,0, 0,0,0, 0,1,0, 1,1,0, 0,1,0, 1,1,1, 1,1,0, 0,1,0, 0,1,1, 1,1,1, 0,0,0, 1,0,1, 0,0,1, 0,0,0, 1,0,0, 1,0,1, 1,0,0, 1,1,1, 1,1,0, 1,0,0, 1,0,1, 1,1,1, 0,0,0, 0,1,1, 0,1,0, 0,0,0, 0,0,1, 0,1,1, 0,0,1, 1,1,1, 0,1,1, 0,0,1, 1,0,1, 1,1,1];
-var CUBE_UVS = [0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1];
+// Cube vertices and UVs (Simplified)
+const V = [0,0,0, 1,1,0, 1,0,0, 0,0,0, 0,1,0, 1,1,0, 0,1,0, 1,1,1, 1,1,0, 0,1,0, 0,1,1, 1,1,1, 0,0,0, 1,0,1, 0,0,1, 0,0,0, 1,0,0, 1,0,1, 1,0,0, 1,1,1, 1,1,0, 1,0,0, 1,0,1, 1,1,1, 0,0,0, 0,1,1, 0,1,0, 0,0,0, 0,0,1, 0,1,1, 0,0,1, 1,1,1, 0,1,1, 0,0,1, 1,0,1, 1,1,1];
+const U = [0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1, 0,0,1,1,1,0, 0,0,0,1,1,1];
 
-function transformCubeAndAppend(matrix, positions, uvs) {
-  for (var i = 0; i < CUBE_VERTS.length; i += 3) {
-    var v = new Vector3([CUBE_VERTS[i], CUBE_VERTS[i+1], CUBE_VERTS[i+2]]);
-    var t = matrix.multiplyVector3(v);
-    positions.push(t.elements[0], t.elements[1], t.elements[2]);
+function pushCube(matrix, posArr, uvArr) {
+  for (let i = 0; i < V.length; i += 3) {
+    let v = new Vector3([V[i], V[i+1], V[i+2]]);
+    let t = matrix.multiplyVector3(v);
+    posArr.push(t.elements[0], t.elements[1], t.elements[2]);
   }
-  for (var j = 0; j < CUBE_UVS.length; j++) uvs.push(CUBE_UVS[j]);
-}
-
-function setupCanvas() {
-  canvas = document.getElementById('webgl');
-  if (!canvas) { console.error('Canvas #webgl not found'); return false; }
-  gl = canvas.getContext('webgl', { preserveDrawingBuffer: true });
-  if (!gl) { console.error('WebGL not supported'); return false; }
-  var w = canvas.width;
-  var h = canvas.height;
-  if (w <= 0 || h <= 0) {
-    canvas.width = 600;
-    canvas.height = 600;
-    w = 600;
-    h = 600;
-  }
-  gl.viewport(0, 0, w, h);
-  gl.enable(gl.DEPTH_TEST);
-  gl.clearColor(0.5, 0.8, 1, 1);
-  return true;
-}
-
-function createDefaultTexture() {
-  var tex = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, tex);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-  return tex;
-}
-
-function bindDefaultTextures() {
-  for (var u = 0; u <= 4; u++) {
-    gl.activeTexture(gl.TEXTURE0 + u);
-    gl.bindTexture(gl.TEXTURE_2D, createDefaultTexture());
-    var sampler = [u_Sampler0, u_Sampler1, u_Sampler2, u_Sampler3, u_Sampler4][u];
-    if (sampler !== null) gl.uniform1i(sampler, u);
-  }
-}
-
-function initTextures() {
-  const files = [
-    { u: 1, url: 'sand.jpg' }, 
-    { u: 3, url: 'gold.jpg' }, 
-    { u: 4, url: 'dirt.jpg' }
-  ];
-  files.forEach(f => {
-    const img = new Image();
-    img.onload = () => {
-      const tex = gl.createTexture();
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
-      gl.activeTexture(gl.TEXTURE0 + f.u);
-      gl.bindTexture(gl.TEXTURE_2D, tex);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-      gl.uniform1i([u_Sampler0, u_Sampler1, u_Sampler2, u_Sampler3, u_Sampler4][f.u], f.u);
-    };
-    img.src = f.url;
-  });
-}
-
-function keydown(ev) {
-  if (g_gameWon) return;
-  const key = ev.key.toLowerCase();
-  const oldX = g_camera.eye.elements[0];
-  const oldZ = g_camera.eye.elements[2];
-
-  if (key === 'w') g_camera.moveForward();
-  else if (key === 's') g_camera.moveBackwards();
-  else if (key === 'a') g_camera.moveLeft();
-  else if (key === 'd') g_camera.moveRight();
-  else if (key === 'q') g_camera.panLeft();
-  else if (key === 'e') g_camera.panRight();
-
-  if (!canMove(g_camera.eye.elements[0], g_camera.eye.elements[2])) {
-    g_camera.eye.elements[0] = oldX;
-    g_camera.eye.elements[2] = oldZ;
-  }
-}
-
-function restartGame() {
-  g_gameWon = false;
-  document.getElementById('titleCanvas').style.display = 'none';
-  buildMap();
-  // Spawn camera in a cleared corner
-  g_camera.eye.set(new Vector3([-12, 0, -12]).elements);
-  g_camera.at.set(new Vector3([0, 0, 0]).elements);
-  g_camera.updateViewMatrix();
+  uvArr.push(...U);
 }
 
 function renderAllShapes() {
-  const cell = worldToMap(g_camera.eye.elements[0], g_camera.eye.elements[2]);
-  if (!g_gameWon && cell && g_map[cell.x][cell.z] === 4) {
-      g_gameWon = true;
-      const tc = document.getElementById('titleCanvas');
-      tc.style.display = 'block';
-      const ctx = tc.getContext('2d');
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      ctx.fillRect(0,0,600,600);
-      ctx.fillStyle = 'gold';
-      ctx.font = '30px Arial';
-      ctx.fillText("GOLD FOUND!", 200, 300);
-  }
-
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.uniformMatrix4fv(u_ProjectionMatrix, false, g_camera.projectionMatrix.elements);
   gl.uniformMatrix4fv(u_ViewMatrix, false, g_camera.viewMatrix.elements);
 
-  // Draw Ground
-  var gPos = [], gUv = [];
-  var m = new Matrix4();
-  m.translate(-MAP_SIZE/2, -0.75, -MAP_SIZE/2);
-  m.scale(MAP_SIZE, 0.01, MAP_SIZE);
-  transformCubeAndAppend(m, gPos, gUv);
-  drawBatchedBatch(gPos, gUv, 1, [1,1,1,1]);
+  let m = new Matrix4();
+  
+  // Ground (Sand)
+  let gP = [], gU = [];
+  m.setTranslate(-MAP_SIZE/2, -0.8, -MAP_SIZE/2); m.scale(MAP_SIZE, 0.05, MAP_SIZE);
+  pushCube(m, gP, gU);
+  drawBatchedBatch(gP, gU, 1, [0.9, 0.8, 0.6, 1.0]);
 
-  // Draw Map
-  var dPos = [], dUv = [], goPos = [], goUv = [];
-  for(var x=0; x<MAP_SIZE; x++){
-    for(var z=0; z<MAP_SIZE; z++){
+  // Map
+  let dP = [], dU = [], goP = [], goU = [];
+  for(let x=0; x<MAP_SIZE; x++){
+    for(let z=0; z<MAP_SIZE; z++){
       if(g_map[x][z] === 0) continue;
-      m.setIdentity();
-      m.translate(x - MAP_SIZE/2, -0.75, z - MAP_SIZE/2);
-      if(g_map[x][z] === 4) transformCubeAndAppend(m, goPos, goUv);
-      else transformCubeAndAppend(m, dPos, dUv);
+      m.setTranslate(x - MAP_SIZE/2, -0.8, z - MAP_SIZE/2);
+      if(g_map[x][z] === 4) pushCube(m, goP, goU);
+      else pushCube(m, dP, dU);
     }
   }
-  drawBatchedBatch(dPos, dUv, 4, [1,1,1,1]);
-  drawBatchedBatch(goPos, goUv, 3, [1,1,1,1]);
+  drawBatchedBatch(dP, dU, 4, [0.5, 0.3, 0.1, 1.0]); // Dirt Walls
+  drawBatchedBatch(goP, goU, 3, [1.0, 0.9, 0.0, 1.0]); // Gold Treasure
 
-  // Draw Sky last (inside of big cube)
-  gl.depthMask(false);
-  gl.cullFace(gl.FRONT);
-  gl.uniform1f(u_texColorWeight, 0);
-  var sPos = [], sUv = [];
-  m.setIdentity(); m.translate(-500, -500, -500); m.scale(1000, 1000, 1000);
-  transformCubeAndAppend(m, sPos, sUv);
-  drawBatchedBatch(sPos, sUv, -2, [0.5, 0.8, 1, 1]);
-  gl.cullFace(gl.BACK);
-  gl.depthMask(true);
-
-  g_frameCount++;
-  var now = performance.now ? performance.now() / 1000 : 0;
-  if (now - g_lastFpsTime >= 0.5) {
-    g_lastFpsTime = now;
-    var el = document.getElementById('fpsCounter');
-    if (el) el.textContent = 'FPS: ' + Math.round(g_frameCount / 0.5);
-    g_frameCount = 0;
-  }
+  // Sky
+  let sP = [], sU = [];
+  m.setTranslate(0,0,0); m.scale(100, 100, 100); m.translate(-0.5, -0.5, -0.5);
+  pushCube(m, sP, sU);
+  drawBatchedBatch(sP, sU, -2, [0.5, 0.7, 1.0, 1.0]);
 }
 
 function main() {
-  if (!setupCanvas()) return;
-  connectVariablesToGLSL();
-  if (!gl.program) { console.error('Shaders failed to compile'); return; }
-  bindDefaultTextures();
-  g_camera = new Camera();
-  g_camera.updateProjectionMatrix(canvas);
-  buildMap();
-  restartGame();
-  initTextures();
-  document.onkeydown = keydown;
-  var tc = document.getElementById('titleCanvas');
-  if (tc) tc.onclick = restartGame;
-  
-  function tick() {
-    try { renderAllShapes(); } catch (e) { console.error('Render error:', e); }
-    requestAnimationFrame(tick);
-  }
-  tick();
-}
+  canvas = document.getElementById('webgl');
+  gl = canvas.getContext('webgl', { preserveDrawingBuffer: true });
+  if(!gl) return;
+  gl.enable(gl.DEPTH_TEST);
 
-function connectVariablesToGLSL() {
-  if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
-    console.error('initShaders failed');
-    return;
-  }
+  if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) return;
+
   a_Position = gl.getAttribLocation(gl.program, 'a_Position');
   a_UV = gl.getAttribLocation(gl.program, 'a_UV');
   u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor');
@@ -323,9 +193,34 @@ function connectVariablesToGLSL() {
   u_ProjectionMatrix = gl.getUniformLocation(gl.program, 'u_ProjectionMatrix');
   u_texColorWeight = gl.getUniformLocation(gl.program, 'u_texColorWeight');
   u_whichTexture = gl.getUniformLocation(gl.program, 'u_whichTexture');
-  u_Sampler0 = gl.getUniformLocation(gl.program, 'u_Sampler0');
   u_Sampler1 = gl.getUniformLocation(gl.program, 'u_Sampler1');
-  u_Sampler2 = gl.getUniformLocation(gl.program, 'u_Sampler2');
   u_Sampler3 = gl.getUniformLocation(gl.program, 'u_Sampler3');
   u_Sampler4 = gl.getUniformLocation(gl.program, 'u_Sampler4');
+
+  g_camera = new Camera();
+  g_camera.eye.set(new Vector3([-10, 0, -10]).elements); 
+  buildMap();
+  initTextures();
+
+  document.onkeydown = (ev) => {
+    let oldX = g_camera.eye.elements[0];
+    let oldZ = g_camera.eye.elements[2];
+    
+    if(ev.key === 'w') g_camera.moveForward();
+    if(ev.key === 's') g_camera.moveBackwards();
+    if(ev.key === 'a') g_camera.moveLeft();
+    if(ev.key === 'd') g_camera.moveRight();
+    if(ev.key === 'q') g_camera.panLeft();
+    if(ev.key === 'e') g_camera.panRight();
+    
+    // Collision logic
+    let cell = {x: Math.round(g_camera.eye.elements[0] + MAP_SIZE/2), z: Math.round(g_camera.eye.elements[2] + MAP_SIZE/2)};
+    if(g_map[cell.x] && g_map[cell.x][cell.z] === 1) {
+        g_camera.eye.elements[0] = oldX;
+        g_camera.eye.elements[2] = oldZ;
+    }
+  };
+
+  function tick() { renderAllShapes(); requestAnimationFrame(tick); }
+  tick();
 }
