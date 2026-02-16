@@ -34,7 +34,6 @@ void main() {
     else if (u_whichTexture == 3) texColor = texture2D(u_Sampler3, v_UV);
     else if (u_whichTexture == 4) texColor = texture2D(u_Sampler4, v_UV);
     
-    // Fallback to solid color if texture failed to load (avoiding black boxes)
     if (texColor.a < 0.1) gl_FragColor = u_FragColor;
     else gl_FragColor = mix(u_FragColor, texColor, u_texColorWeight);
   }
@@ -64,7 +63,7 @@ function buildMap() {
     for (let z = 0; z < MAP_SIZE; z++) g_map[x][z] = 0;
   }
 
-  // FIXED: Boundary walls creating a 14x14 area (limit 7 from array center 16)
+  // FIXED: Boundary walls creating a 14x14 area (centered at 16)
   const limit = 7; 
   for (let i = -limit; i <= limit; i++) {
     let x_w1 = 16 + limit, x_w2 = 16 - limit;
@@ -73,16 +72,19 @@ function buildMap() {
     g_map[z_c][x_w1] = 1; g_map[z_c][x_w2] = 1;
   }
 
-  // Maze Walls (Dirt) inside the 14x14 area
-  for (let x = 10; x < 22; x++) {
-    for (let z = 10; z < 22; z++) {
-      if (Math.random() > 0.7) g_map[x][z] = 1;
+  // Maze Walls (Brown Dirt) - Spaced out for movement
+  for (let x = 16-limit+1; x < 16+limit; x++) {
+    for (let z = 16-limit+1; z < 16+limit; z++) {
+      // Only place blocks on odd coordinates to create wide paths
+      if (x % 2 !== 0 && z % 2 !== 0) {
+        if (Math.random() > 0.5) g_map[x][z] = 1;
+      }
     }
   }
 
-  g_map[16][16] = 4; // Gold treasure block at (0,0) world coords
+  g_map[16][16] = 4; // Gold treasure 
 
-  // FIXED: Ensure 5x5 spawn zone is empty to prevent starting inside a block
+  // Ensure starting zone is clear
   for (let x = 9; x < 13; x++) {
     for (let z = 9; z < 13; z++) g_map[x][z] = 0;
   }
@@ -173,14 +175,15 @@ function renderAllShapes() {
       else pushCube(m, dP, dU);
     }
   }
-  drawBatchedBatch(dP, dU, 4, [0.4, 0.2, 0.0, 1.0]); 
+  // Dirt block color changed to Brown
+  drawBatchedBatch(dP, dU, 4, [0.5, 0.25, 0.1, 1.0]); 
   drawBatchedBatch(goP, goU, 3, [1.0, 0.9, 0.0, 1.0]); 
 
   let sP = [], sU = []; 
   m.setTranslate(0,0,0); m.scale(200, 200, 200); m.translate(-0.5, -0.5, -0.5);
   pushCube(m, sP, sU);
   gl.enable(gl.CULL_FACE);
-  gl.cullFace(gl.FRONT);  // draw only back faces = interior of skybox
+  gl.cullFace(gl.FRONT);  
   drawBatchedBatch(sP, sU, -2, [0.5, 0.8, 1.0, 1.0]);
   gl.cullFace(gl.BACK);
   gl.disable(gl.CULL_FACE);
@@ -190,7 +193,6 @@ function restartGame() {
   g_gameWon = false;
   document.getElementById('titleCanvas').style.display = 'none';
   buildMap();
-  // FIXED: Spawn at world coordinates (-5.5, 0.0, -5.5) looking at center
   g_camera.eye.set(new Vector3([-5.5, 0.0, -5.5]).elements); 
   g_camera.at.set(new Vector3([0, 0, 0]).elements);
   g_camera.updateViewMatrix();
@@ -202,7 +204,6 @@ function main() {
   if(!gl || !initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) return;
 
   gl.enable(gl.DEPTH_TEST);
-  gl.viewport(0, 0, canvas.width, canvas.height);
 
   a_Position = gl.getAttribLocation(gl.program, 'a_Position');
   a_UV = gl.getAttribLocation(gl.program, 'a_UV');
@@ -241,7 +242,6 @@ function main() {
     if(ev.key === 'q') g_camera.panLeft();
     if(ev.key === 'e') g_camera.panRight();
     
-    // Boundary collision check
     let c = {x: Math.round(g_camera.eye.elements[0] + 16), z: Math.round(g_camera.eye.elements[2] + 16)};
     if(g_map[c.x] && g_map[c.x][c.z] === 1) { g_camera.eye.elements[0] = oldX; g_camera.eye.elements[2] = oldZ; }
   };
@@ -251,11 +251,18 @@ function main() {
   let frames = 0, fpsTime = performance.now();
   const fpsEl = document.getElementById('fpsCounter');
   function tick() {
+    // Sinking fix: ensure player is always at least at y=0
     if (g_isJumping || g_camera.eye.elements[1] > 0) {
       g_camera.eye.elements[1] += g_verVelocity; g_camera.at.elements[1] += g_verVelocity;
       g_verVelocity += G_GRAVITY;
-      if (g_camera.eye.elements[1] <= 0) { g_camera.eye.elements[1] = 0; g_verVelocity = 0; g_isJumping = false; }
+      if (g_camera.eye.elements[1] <= 0) { 
+        g_camera.eye.elements[1] = 0; 
+        g_verVelocity = 0; 
+        g_isJumping = false; 
+      }
       g_camera.updateViewMatrix();
+    } else {
+      g_camera.eye.elements[1] = 0; // Lock floor position
     }
     renderAllShapes();
     frames++;
