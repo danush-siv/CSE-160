@@ -67,27 +67,24 @@ function buildMap() {
     g_map[x] = new Int8Array(MAP_SIZE).fill(0);
   }
 
-  // FIXED: Expanded Boundary walls to cover the full 32x32 sand area
+  // Boundary walls (black)
   for (let i = 0; i < MAP_SIZE; i++) {
-    g_map[0][i] = 1;
-    g_map[MAP_SIZE - 1][i] = 1;
-    g_map[i][0] = 1;
-    g_map[i][MAP_SIZE - 1] = 1;
+    g_map[0][i] = 2;
+    g_map[MAP_SIZE - 1][i] = 2;
+    g_map[i][0] = 2;
+    g_map[i][MAP_SIZE - 1] = 2;
   }
 
-  // Maze Walls (Brown Dirt): Spaced for navigation
+  // Interior walls (brown)
   for (let x = 2; x < MAP_SIZE - 2; x++) {
     for (let z = 2; z < MAP_SIZE - 2; z++) {
-      if (x === 16 && z === 16) continue; // Treasure spot
-      if (x > 9 && x < 13 && z > 9 && z < 13) continue; // Spawn spot
-
-      if (x % 2 !== 0 && z % 2 !== 0) {
-        if (Math.random() > 0.6) g_map[x][z] = 1;
-      }
+      if (x === 16 && z === 16) continue;
+      if (x > 9 && x < 13 && z > 9 && z < 13) continue;
+      if (x % 2 !== 0 && z % 2 !== 0 && Math.random() > 0.6) g_map[x][z] = 1;
     }
   }
 
-  g_map[16][16] = 4; // Gold Block at center
+  g_map[16][16] = 4; // Gold block (yellow)
 }
 
 function initTextures() {
@@ -166,19 +163,20 @@ function renderAllShapes() {
   pushCube(m, gP, gU);
   drawBatchedBatch(gP, gU, 1, [0.8, 0.7, 0.5, 1.0]);
 
-  // Map Rendering
-  let dP = [], dU = [], goP = [], goU = []; 
-  for(let x=0; x<MAP_SIZE; x++){
-    for(let z=0; z<MAP_SIZE; z++){
-      if(g_map[x][z] === 0) continue;
+  // Map: boundary = black, interior walls = brown, gold = yellow (all solid color)
+  let bndP = [], bndU = [], dP = [], dU = [], goP = [], goU = [];
+  for (let x = 0; x < MAP_SIZE; x++) {
+    for (let z = 0; z < MAP_SIZE; z++) {
+      if (g_map[x][z] === 0) continue;
       m.setTranslate(x - 16, -0.8, z - 16);
-      if(g_map[x][z] === 4) pushCube(m, goP, goU);
-      else pushCube(m, dP, dU);
+      if (g_map[x][z] === 2) pushCube(m, bndP, bndU);       // boundary
+      else if (g_map[x][z] === 4) pushCube(m, goP, goU);     // gold
+      else pushCube(m, dP, dU);                              // interior wall
     }
   }
-  // Color brown for dirt and bright yellow for gold fallback
-  drawBatchedBatch(dP, dU, 4, [0.5, 0.25, 0.1, 1.0]); 
-  drawBatchedBatch(goP, goU, 3, [1.0, 0.9, 0.0, 1.0]); 
+  drawBatchedBatch(bndP, bndU, -1, [0.15, 0.15, 0.15, 1.0]);  // black
+  drawBatchedBatch(dP, dU, -1, [0.45, 0.28, 0.12, 1.0]);     // brown
+  drawBatchedBatch(goP, goU, -1, [1.0, 0.85, 0.0, 1.0]);     // gold/yellow 
 
   // Skybox
   let sP = [], sU = []; 
@@ -260,9 +258,9 @@ function main() {
     
     // Collision detection
     let c = {x: Math.round(g_camera.eye.elements[0] + 16), z: Math.round(g_camera.eye.elements[2] + 16)};
-    if(g_map[c.x] && g_map[c.x][c.z] === 1) { 
-      g_camera.eye.elements[0] = oldX; 
-      g_camera.eye.elements[2] = oldZ; 
+    if (g_map[c.x] && (g_map[c.x][c.z] === 1 || g_map[c.x][c.z] === 2)) {
+      g_camera.eye.elements[0] = oldX;
+      g_camera.eye.elements[2] = oldZ;
     }
   };
 
