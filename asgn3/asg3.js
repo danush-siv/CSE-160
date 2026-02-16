@@ -75,15 +75,34 @@ function buildMap() {
     g_map[i][MAP_SIZE - 1] = 2;
   }
 
-  // Interior walls (brown)
+  // Fill interior with walls first (brown), then carve connected maze
   for (let x = 2; x < MAP_SIZE - 2; x++) {
     for (let z = 2; z < MAP_SIZE - 2; z++) {
       if (x === 16 && z === 16) continue;
-      if (x > 9 && x < 13 && z > 9 && z < 13) continue;
-      if (x % 2 !== 0 && z % 2 !== 0 && Math.random() > 0.6) g_map[x][z] = 1;
+      if (x >= 10 && x < 12 && z >= 10 && z < 12) continue; // spawn clear
+      g_map[x][z] = 1;
     }
   }
-
+  // Recursive backtracking maze: rooms at (2+2*r, 2+2*c), r,c in 0..13
+  const R = 14;
+  const visited = new Array(R * R).fill(false);
+  function idx(r, c) { return r * R + c; }
+  const stack = [{ r: 0, c: 0 }];
+  visited[0] = true;
+  g_map[2][2] = 0;
+  const dirs = [{ dr: -1, dc: 0 }, { dr: 1, dc: 0 }, { dr: 0, dc: -1 }, { dr: 0, dc: 1 }];
+  while (stack.length > 0) {
+    const { r, c } = stack[stack.length - 1];
+    const neighbors = dirs.map(d => ({ r: r + d.dr, c: c + d.dc })).filter(n => n.r >= 0 && n.r < R && n.c >= 0 && n.c < R && !visited[idx(n.r, n.c)]);
+    if (neighbors.length === 0) { stack.pop(); continue; }
+    const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+    g_map[2 + 2 * next.r][2 + 2 * next.c] = 0;
+    if (next.r !== r) g_map[2 + 2 * r + (next.r - r)][2 + 2 * c] = 0;
+    else g_map[2 + 2 * r][2 + 2 * c + (next.c - c)] = 0;
+    visited[idx(next.r, next.c)] = true;
+    stack.push(next);
+  }
+  for (let x = 10; x <= 12; x++) for (let z = 10; z <= 12; z++) g_map[x][z] = 0; // spawn clear
   g_map[16][16] = 4; // Gold block (yellow)
 }
 
@@ -143,14 +162,24 @@ function pushCube(matrix, posArr, uvArr) {
   uvArr.push(...U);
 }
 
-function renderAllShapes() {
-  const cell = {x: Math.round(g_camera.eye.elements[0] + 16), z: Math.round(g_camera.eye.elements[2] + 16)};
-  if (!g_gameWon && g_map[cell.x] && g_map[cell.x][cell.z] === 4) {
-      g_gameWon = true;
-      let tc = document.getElementById('titleCanvas');
-      if (tc) tc.style.display = 'block';
+function rayHitGold(originX, originY, originZ, dirX, dirY, dirZ) {
+  const goldMin = [0, -0.8, 0], goldMax = [1, 0.2, 1];
+  let tMin = -Infinity, tMax = Infinity;
+  for (let i = 0; i < 3; i++) {
+    const o = [originX, originY, originZ][i], d = [dirX, dirY, dirZ][i];
+    if (Math.abs(d) < 1e-6) {
+      if (o < goldMin[i] || o > goldMax[i]) return false;
+    } else {
+      let t1 = (goldMin[i] - o) / d, t2 = (goldMax[i] - o) / d;
+      if (t1 > t2) { const tmp = t1; t1 = t2; t2 = tmp; }
+      tMin = Math.max(tMin, t1); tMax = Math.min(tMax, t2);
+      if (tMin > tMax) return false;
+    }
   }
+  return tMin >= 0 && tMin < 50;
+}
 
+function renderAllShapes() {
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.uniformMatrix4fv(u_ProjectionMatrix, false, g_camera.projectionMatrix.elements);
   gl.uniformMatrix4fv(u_ViewMatrix, false, g_camera.viewMatrix.elements);
@@ -222,7 +251,30 @@ function main() {
   restartGame();
   initTextures();
 
-  canvas.onmousedown = e => { g_mouseDown = true; g_lastMouseX = e.clientX; };
+  canvas.onmousedown = e => {
+    if (e.button === 0) {
+      const ex = g_camera.eye.elements[0], ey = g_camera.eye.elements[1], ez = g_camera.eye.elements[2];
+      const ax = g_camera.at.elements[0], ay = g_camera.at.elements[1], az = g_camera.at.elements[2];
+      let dx = ax - ex, dy = ay - ey, dz = az - ez;
+      const len = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1;
+      dx /= len; dy /= len; dz /= len;
+      if (!g_gameWon && rayHitGold(ex, ey, ez, dx, dy, dz)) {
+        g_gameWon = true;
+        const tc = document.getElementById('titleCanvas');
+        if (tc) {
+          tc.style.display = 'block';
+          const ctx = tc.getContext('2d');
+          ctx.fillStyle = 'rgba(0,0,0,0.7)';
+          ctx.fillRect(0, 0, 600, 600);
+          ctx.fillStyle = 'gold';
+          ctx.font = '30px Arial';
+          ctx.fillText('GOLD FOUND! Click to Restart', 100, 300);
+        }
+      }
+    }
+    g_mouseDown = true;
+    g_lastMouseX = e.clientX;
+  };
   canvas.onmouseup = () => { g_mouseDown = false; };
   canvas.onmousemove = e => {
     if (g_mouseDown) {
