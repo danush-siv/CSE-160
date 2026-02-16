@@ -1,5 +1,6 @@
 /**
  * CSE 160 Assignment 3 — Cube with UV coordinates and texture/base-color mixing.
+ * Danush Sivarajan, 1932047, CSE 160
  */
 class Cube {
   constructor() {

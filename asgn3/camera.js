@@ -1,5 +1,6 @@
 /**
  * CSE 160 Assignment 3 — Camera class (Matsuda Ch7).
+ * Danush Sivarajan, 1932047, CSE 160
  * Stores and controls View and Projection matrices.
  */
 
