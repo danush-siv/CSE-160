@@ -29,15 +29,15 @@ void main() {
   if (u_whichTexture == -2) {
     gl_FragColor = u_FragColor; // Sky
   } else {
-    if (u_texColorWeight < 0.5) {
-      gl_FragColor = u_FragColor;
+    vec4 texColor = vec4(1.0);
+    if (u_whichTexture == 1) texColor = texture2D(u_Sampler1, v_UV);
+    else if (u_whichTexture == 3) texColor = texture2D(u_Sampler3, v_UV);
+    else if (u_whichTexture == 4) texColor = texture2D(u_Sampler4, v_UV);
+    
+    if (u_texColorWeight < 0.1 || texColor.a < 0.1) {
+       gl_FragColor = u_FragColor;
     } else {
-      vec4 texColor = vec4(1.0);
-      if (u_whichTexture == 1) texColor = texture2D(u_Sampler1, v_UV);
-      else if (u_whichTexture == 3) texColor = texture2D(u_Sampler3, v_UV);
-      else if (u_whichTexture == 4) texColor = texture2D(u_Sampler4, v_UV);
-      if (texColor.a < 0.1) gl_FragColor = u_FragColor;
-      else gl_FragColor = mix(u_FragColor, texColor, u_texColorWeight);
+       gl_FragColor = mix(u_FragColor, texColor, u_texColorWeight);
     }
   }
 }
@@ -61,13 +61,16 @@ let g_isJumping = false;
 let g_mouseDown = false;
 let g_lastMouseX = -1;
 
+/**
+ * Builds a maze of connected walls using Recursive Backtracking.
+ */
 function buildMap() {
   g_map = new Array(MAP_SIZE);
   for (let x = 0; x < MAP_SIZE; x++) {
-    g_map[x] = new Int8Array(MAP_SIZE).fill(0);
+    g_map[x] = new Int8Array(MAP_SIZE).fill(1); // Fill with solid brown walls
   }
 
-  // Boundary walls (black)
+  // Boundary walls (permanent black boundary)
   for (let i = 0; i < MAP_SIZE; i++) {
     g_map[0][i] = 2;
     g_map[MAP_SIZE - 1][i] = 2;
@@ -75,35 +78,42 @@ function buildMap() {
     g_map[i][MAP_SIZE - 1] = 2;
   }
 
-  // Fill interior with walls first (brown), then carve connected maze
-  for (let x = 2; x < MAP_SIZE - 2; x++) {
-    for (let z = 2; z < MAP_SIZE - 2; z++) {
-      if (x === 16 && z === 16) continue;
-      if (x >= 10 && x < 12 && z >= 10 && z < 12) continue; // spawn clear
-      g_map[x][z] = 1;
-    }
-  }
-  // Recursive backtracking maze: rooms at (2+2*r, 2+2*c), r,c in 0..13
-  const R = 14;
-  const visited = new Array(R * R).fill(false);
-  function idx(r, c) { return r * R + c; }
-  const stack = [{ r: 0, c: 0 }];
+  // Recursive Backtracking to carve connected paths
+  const R = 14, C = 14;
+  const visited = new Array(R * C).fill(false);
+  const stack = [{r: 0, c: 0}];
   visited[0] = true;
   g_map[2][2] = 0;
-  const dirs = [{ dr: -1, dc: 0 }, { dr: 1, dc: 0 }, { dr: 0, dc: -1 }, { dr: 0, dc: 1 }];
+
+  const dr = [-1, 1, 0, 0];
+  const dc = [0, 0, -1, 1];
+
   while (stack.length > 0) {
-    const { r, c } = stack[stack.length - 1];
-    const neighbors = dirs.map(d => ({ r: r + d.dr, c: c + d.dc })).filter(n => n.r >= 0 && n.r < R && n.c >= 0 && n.c < R && !visited[idx(n.r, n.c)]);
-    if (neighbors.length === 0) { stack.pop(); continue; }
-    const next = neighbors[Math.floor(Math.random() * neighbors.length)];
-    g_map[2 + 2 * next.r][2 + 2 * next.c] = 0;
-    if (next.r !== r) g_map[2 + 2 * r + (next.r - r)][2 + 2 * c] = 0;
-    else g_map[2 + 2 * r][2 + 2 * c + (next.c - c)] = 0;
-    visited[idx(next.r, next.c)] = true;
-    stack.push(next);
+    const curr = stack[stack.length - 1];
+    const neighbors = [];
+    for (let i = 0; i < 4; i++) {
+      const nr = curr.r + dr[i], nc = curr.c + dc[i];
+      if (nr >= 0 && nr < R && nc >= 0 && nc < C && !visited[nr * C + nc]) {
+        neighbors.push({r: nr, c: nc, dir: i});
+      }
+    }
+
+    if (neighbors.length === 0) {
+      stack.pop();
+    } else {
+      const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+      visited[next.r * C + next.c] = true;
+      g_map[2 + 2 * next.r][2 + 2 * next.c] = 0;
+      g_map[2 + 2 * curr.r + dr[next.dir]][2 + 2 * curr.c + dc[next.dir]] = 0;
+      stack.push(next);
+    }
   }
-  for (let x = 10; x <= 12; x++) for (let z = 10; z <= 12; z++) g_map[x][z] = 0; // spawn clear
-  g_map[16][16] = 4; // Gold block (yellow)
+
+  // Clear accessibility areas
+  for (let x = 15; x <= 17; x++) for (let z = 15; z <= 17; z++) g_map[x][z] = 0;
+  for (let x = 10; x <= 12; x++) for (let z = 10; z <= 12; z++) g_map[x][z] = 0;
+
+  g_map[16][16] = 4; // Gold Block
 }
 
 function initTextures() {
@@ -112,7 +122,6 @@ function initTextures() {
     { unit: 3, file: 'gold.jpg', sampler: u_Sampler3 },
     { unit: 4, file: 'dirt.jpg', sampler: u_Sampler4 }
   ];
-  const base = window.location.href.replace(/[^/]*$/, '');
   textureData.forEach(data => {
     let texture = gl.createTexture();
     let image = new Image();
@@ -125,8 +134,7 @@ function initTextures() {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
       gl.uniform1i(data.sampler, data.unit);
     };
-    image.onerror = function() { console.warn('Texture failed: ' + data.file); };
-    image.src = base + data.file;
+    image.src = data.file;
   });
 }
 
@@ -162,24 +170,21 @@ function pushCube(matrix, posArr, uvArr) {
   uvArr.push(...U);
 }
 
-function rayHitGold(originX, originY, originZ, dirX, dirY, dirZ) {
-  const goldMin = [0, -0.8, 0], goldMax = [1, 0.2, 1];
-  let tMin = -Infinity, tMax = Infinity;
-  for (let i = 0; i < 3; i++) {
-    const o = [originX, originY, originZ][i], d = [dirX, dirY, dirZ][i];
-    if (Math.abs(d) < 1e-6) {
-      if (o < goldMin[i] || o > goldMax[i]) return false;
-    } else {
-      let t1 = (goldMin[i] - o) / d, t2 = (goldMax[i] - o) / d;
-      if (t1 > t2) { const tmp = t1; t1 = t2; t2 = tmp; }
-      tMin = Math.max(tMin, t1); tMax = Math.min(tMax, t2);
-      if (tMin > tMax) return false;
-    }
-  }
-  return tMin >= 0 && tMin < 50;
-}
-
 function renderAllShapes() {
+  const cell = {x: Math.round(g_camera.eye.elements[0] + 16), z: Math.round(g_camera.eye.elements[2] + 16)};
+  if (!g_gameWon && g_map[cell.x] && g_map[cell.x][cell.z] === 4) {
+      g_gameWon = true;
+      let tc = document.getElementById('titleCanvas');
+      if (tc) {
+        tc.style.display = 'block';
+        let ctx = tc.getContext('2d');
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(0,0,600,600);
+        ctx.fillStyle = 'gold'; ctx.font = '30px Arial';
+        ctx.fillText("GOLD FOUND! Click to Restart", 100, 300);
+      }
+  }
+
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.uniformMatrix4fv(u_ProjectionMatrix, false, g_camera.projectionMatrix.elements);
   gl.uniformMatrix4fv(u_ViewMatrix, false, g_camera.viewMatrix.elements);
@@ -192,20 +197,20 @@ function renderAllShapes() {
   pushCube(m, gP, gU);
   drawBatchedBatch(gP, gU, 1, [0.8, 0.7, 0.5, 1.0]);
 
-  // Map: boundary = black, interior walls = brown, gold = yellow (all solid color)
+  // Map
   let bndP = [], bndU = [], dP = [], dU = [], goP = [], goU = [];
-  for (let x = 0; x < MAP_SIZE; x++) {
-    for (let z = 0; z < MAP_SIZE; z++) {
-      if (g_map[x][z] === 0) continue;
+  for(let x=0; x<MAP_SIZE; x++){
+    for(let z=0; z<MAP_SIZE; z++){
+      if(g_map[x][z] === 0) continue;
       m.setTranslate(x - 16, -0.8, z - 16);
-      if (g_map[x][z] === 2) pushCube(m, bndP, bndU);       // boundary
-      else if (g_map[x][z] === 4) pushCube(m, goP, goU);     // gold
-      else pushCube(m, dP, dU);                              // interior wall
+      if(g_map[x][z] === 2) pushCube(m, bndP, bndU);
+      else if(g_map[x][z] === 4) pushCube(m, goP, goU);
+      else pushCube(m, dP, dU);
     }
   }
-  drawBatchedBatch(bndP, bndU, -1, [0.15, 0.15, 0.15, 1.0]);  // black
-  drawBatchedBatch(dP, dU, -1, [0.45, 0.28, 0.12, 1.0]);     // brown
-  drawBatchedBatch(goP, goU, -1, [1.0, 0.85, 0.0, 1.0]);     // gold/yellow 
+  drawBatchedBatch(bndP, bndU, -1, [0.15, 0.15, 0.15, 1.0]); // Boundary
+  drawBatchedBatch(dP, dU, 4, [0.45, 0.28, 0.12, 1.0]); // Brown Walls
+  drawBatchedBatch(goP, goU, 3, [1.0, 0.9, 0.0, 1.0]); // Gold
 
   // Skybox
   let sP = [], sU = []; 
@@ -233,7 +238,6 @@ function main() {
   if(!gl || !initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) return;
 
   gl.enable(gl.DEPTH_TEST);
-
   a_Position = gl.getAttribLocation(gl.program, 'a_Position');
   a_UV = gl.getAttribLocation(gl.program, 'a_UV');
   u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor');
@@ -251,30 +255,7 @@ function main() {
   restartGame();
   initTextures();
 
-  canvas.onmousedown = e => {
-    if (e.button === 0) {
-      const ex = g_camera.eye.elements[0], ey = g_camera.eye.elements[1], ez = g_camera.eye.elements[2];
-      const ax = g_camera.at.elements[0], ay = g_camera.at.elements[1], az = g_camera.at.elements[2];
-      let dx = ax - ex, dy = ay - ey, dz = az - ez;
-      const len = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1;
-      dx /= len; dy /= len; dz /= len;
-      if (!g_gameWon && rayHitGold(ex, ey, ez, dx, dy, dz)) {
-        g_gameWon = true;
-        const tc = document.getElementById('titleCanvas');
-        if (tc) {
-          tc.style.display = 'block';
-          const ctx = tc.getContext('2d');
-          ctx.fillStyle = 'rgba(0,0,0,0.7)';
-          ctx.fillRect(0, 0, 600, 600);
-          ctx.fillStyle = 'gold';
-          ctx.font = '30px Arial';
-          ctx.fillText('GOLD FOUND! Click to Restart', 100, 300);
-        }
-      }
-    }
-    g_mouseDown = true;
-    g_lastMouseX = e.clientX;
-  };
+  canvas.onmousedown = e => { g_mouseDown = true; g_lastMouseX = e.clientX; };
   canvas.onmouseup = () => { g_mouseDown = false; };
   canvas.onmousemove = e => {
     if (g_mouseDown) {
@@ -293,26 +274,22 @@ function main() {
     if(ev.key === 'd') g_camera.moveRight();
     if(ev.key === 'q') g_camera.panLeft();
     if(ev.key === 'e') g_camera.panRight();
-
-    // R = add block, F = remove block (in front of player)
+    
     const fx = g_camera.eye.elements[0], fz = g_camera.eye.elements[2];
     const dx = g_camera.at.elements[0] - fx, dz = g_camera.at.elements[2] - fz;
     const len = Math.sqrt(dx * dx + dz * dz) || 1;
     const nx = Math.round(fx + (dx / len) * 1.5 + 16), nz = Math.round(fz + (dz / len) * 1.5 + 16);
-    const onBorder = nx <= 0 || nx >= MAP_SIZE - 1 || nz <= 0 || nz >= MAP_SIZE - 1;
-    if (ev.key === 'r' && !onBorder && nx >= 0 && nx < MAP_SIZE && nz >= 0 && nz < MAP_SIZE) {
-      if (g_map[nx][nz] === 0 && !(nx === 16 && nz === 16)) g_map[nx][nz] = 1;
-    }
-    if (ev.key === 'f' && nx >= 0 && nx < MAP_SIZE && nz >= 0 && nz < MAP_SIZE) {
-      if (g_map[nx][nz] === 1) g_map[nx][nz] = 0;
-    }
-    if (ev.key === 'r' || ev.key === 'f') ev.preventDefault();
     
-    // Collision detection
+    // Remove individual wall blocks
+    if (ev.key === 'f' && nx > 0 && nx < MAP_SIZE-1 && nz > 0 && nz < MAP_SIZE-1) {
+      if (g_map[nx][nz] === 1) g_map[nx][nz] = 0; 
+    }
+    
+    // Collision
     let c = {x: Math.round(g_camera.eye.elements[0] + 16), z: Math.round(g_camera.eye.elements[2] + 16)};
-    if (g_map[c.x] && (g_map[c.x][c.z] === 1 || g_map[c.x][c.z] === 2)) {
-      g_camera.eye.elements[0] = oldX;
-      g_camera.eye.elements[2] = oldZ;
+    if(g_map[c.x] && (g_map[c.x][c.z] === 1 || g_map[c.x][c.z] === 2)) { 
+      g_camera.eye.elements[0] = oldX; 
+      g_camera.eye.elements[2] = oldZ; 
     }
   };
 
@@ -320,23 +297,17 @@ function main() {
 
   let frames = 0, fpsTime = performance.now();
   const fpsEl = document.getElementById('fpsCounter');
-  
   function tick() {
-    // Ground collision
     if (g_camera.eye.elements[1] < 0) {
-      g_camera.eye.elements[1] = 0;
-      g_camera.at.elements[1] = 0;
-      g_verVelocity = 0;
-      g_isJumping = false;
+      g_camera.eye.elements[1] = 0; g_camera.at.elements[1] = 0;
+      g_verVelocity = 0; g_isJumping = false;
     }
-
     if (g_isJumping || g_camera.eye.elements[1] > 0) {
       g_camera.eye.elements[1] += g_verVelocity; 
       g_camera.at.elements[1] += g_verVelocity;
       g_verVelocity += G_GRAVITY;
       g_camera.updateViewMatrix();
     }
-    
     renderAllShapes();
     frames++;
     const now = performance.now();
