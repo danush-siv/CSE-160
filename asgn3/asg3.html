@@ -13,6 +13,11 @@
     .what ol { margin: 0.5em 0; padding-left: 20px; }
     .what p { margin: 0.5em 0; }
     .story { font-style: italic; color: #444; max-width: 560px; margin: 0.5em 0 1em 0; line-height: 1.5; }
+    #pointer { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; text-align: center; z-index: 1; }
+    #pointer .reticle { width: 20px; height: 20px; margin: -10px auto 4px; border: 2px solid rgba(255,255,255,0.8); border-radius: 50%; box-sizing: border-box; }
+    #pointer.can-remove .reticle { border-color: #6f6; box-shadow: 0 0 8px #6f6; }
+    #pointer .label { font-size: 12px; color: rgba(255,255,255,0.9); text-shadow: 0 0 4px #000; display: none; }
+    #pointer.can-remove .label { display: block; color: #6f6; }
   </style>
 </head>
 <body onload="main()">
@@ -30,6 +35,10 @@
   <div style="position:relative; display:inline-block;">
     <canvas id="webgl" width="600" height="600" style="width:600px; height:600px;">Please use a browser that supports canvas.</canvas>
     <canvas id="titleCanvas" width="600" height="600" style="position:absolute; top:0; left:0; pointer-events:auto; display:none;"></canvas>
+    <div id="pointer">
+      <div class="reticle"></div>
+      <span class="label">F to remove</span>
+    </div>
   </div>
 
   <p id="fpsCounter">FPS: --</p>

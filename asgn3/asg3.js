@@ -399,6 +399,18 @@ function main() {
       g_camera.updateViewMatrix();
     }
     renderAllShapes();
+    const ptr = document.getElementById('pointer');
+    if (ptr) {
+      ptr.style.display = g_gameWon ? 'none' : '';
+      if (!g_gameWon) {
+        const fx = g_camera.eye.elements[0], fz = g_camera.eye.elements[2];
+        const dx = g_camera.at.elements[0] - fx, dz = g_camera.at.elements[2] - fz;
+        const len = Math.sqrt(dx * dx + dz * dz) || 1;
+        const nx = Math.round(fx + (dx / len) * 1.5 + 16), nz = Math.round(fz + (dz / len) * 1.5 + 16);
+        const canRemove = nx >= 0 && nx < MAP_SIZE && nz >= 0 && nz < MAP_SIZE && g_map[nx] && (g_map[nx][nz] === 1 || g_map[nx][nz] === 3);
+        ptr.classList.toggle('can-remove', !!canRemove);
+      }
+    }
     frames++;
     const now = performance.now();
     if (now - fpsTime >= 1000 && fpsEl) {
