@@ -89,6 +89,8 @@ function initTextures() {
   const textureUnits = [1, 3, 4]; // Sand, Gold, Dirt
   const files = ['sand.jpg', 'gold.jpg', 'dirt.jpg'];
   const samplers = [u_Sampler1, u_Sampler3, u_Sampler4];
+  // Resolve paths relative to the current page so textures load from the same folder as the HTML
+  const base = window.location.href.replace(/[^/]*$/, '');
 
   textureUnits.forEach((unit, i) => {
     let texture = gl.createTexture();
@@ -104,7 +106,7 @@ function initTextures() {
     image.onerror = function() {
        console.log("Failed to load: " + files[i] + ". Using solid colors.");
     };
-    image.src = files[i];
+    image.src = base + files[i];
   });
 }
 
