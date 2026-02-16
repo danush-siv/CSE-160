@@ -179,7 +179,11 @@ function renderAllShapes() {
   let sP = [], sU = []; 
   m.setTranslate(0,0,0); m.scale(200, 200, 200); m.translate(-0.5, -0.5, -0.5);
   pushCube(m, sP, sU);
+  gl.enable(gl.CULL_FACE);
+  gl.cullFace(gl.FRONT);  // draw only back faces = interior of skybox
   drawBatchedBatch(sP, sU, -2, [0.5, 0.8, 1.0, 1.0]);
+  gl.cullFace(gl.BACK);
+  gl.disable(gl.CULL_FACE);
 }
 
 function restartGame() {
@@ -196,6 +200,9 @@ function main() {
   canvas = document.getElementById('webgl');
   gl = canvas.getContext('webgl');
   if(!gl || !initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) return;
+
+  gl.enable(gl.DEPTH_TEST);
+  gl.viewport(0, 0, canvas.width, canvas.height);
 
   a_Position = gl.getAttribLocation(gl.program, 'a_Position');
   a_UV = gl.getAttribLocation(gl.program, 'a_UV');
