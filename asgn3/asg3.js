@@ -34,12 +34,17 @@ void main() {
     else if (u_whichTexture == 3) texColor = texture2D(u_Sampler3, v_UV);
     else if (u_whichTexture == 4) texColor = texture2D(u_Sampler4, v_UV);
     
-    if (texColor.a < 0.1) gl_FragColor = u_FragColor;
-    else gl_FragColor = mix(u_FragColor, texColor, u_texColorWeight);
+    // Safety: If texture failed (alpha 0) or weight is 0, use brown FragColor
+    if (texColor.a < 0.1 || u_texColorWeight < 0.1) {
+       gl_FragColor = u_FragColor;
+    } else {
+       gl_FragColor = mix(u_FragColor, texColor, u_texColorWeight);
+    }
   }
 }
 `;
 
+// --- Global Variables ---
 let canvas, gl;
 let a_Position, a_UV, u_FragColor, u_ModelMatrix, u_ViewMatrix, u_ProjectionMatrix;
 let u_texColorWeight, u_whichTexture, u_Sampler1, u_Sampler3, u_Sampler4;
@@ -50,6 +55,7 @@ let g_map = [];
 const MAP_SIZE = 32;
 const g_textureLoaded = { 1: false, 3: false, 4: false };
 
+// Physics and Mouse
 let g_verVelocity = 0;      
 const G_GRAVITY = -0.01;    
 const G_JUMP_FORCE = 0.25;  
@@ -58,36 +64,34 @@ let g_mouseDown = false;
 let g_lastMouseX = -1;
 
 function buildMap() {
+  // Reset map array
+  g_map = new Array(MAP_SIZE);
   for (let x = 0; x < MAP_SIZE; x++) {
-    g_map[x] = [];
-    for (let z = 0; z < MAP_SIZE; z++) g_map[x][z] = 0;
+    g_map[x] = new Int8Array(MAP_SIZE).fill(0);
   }
 
-  // FIXED: Boundary walls creating a 14x14 area (centered at 16)
+  // Boundary Walls: Fixed 14x14 box centered at index 16
   const limit = 7; 
   for (let i = -limit; i <= limit; i++) {
-    let x_w1 = 16 + limit, x_w2 = 16 - limit;
-    let z_c = 16 + i;
-    g_map[x_w1][z_c] = 1; g_map[x_w2][z_c] = 1;
-    g_map[z_c][x_w1] = 1; g_map[z_c][x_w2] = 1;
+    g_map[16 + limit][16 + i] = 1;
+    g_map[16 - limit][16 + i] = 1;
+    g_map[16 + i][16 + limit] = 1;
+    g_map[16 + i][16 - limit] = 1;
   }
 
-  // Maze Walls (Brown Dirt) - Spaced out for movement
-  for (let x = 16-limit+1; x < 16+limit; x++) {
-    for (let z = 16-limit+1; z < 16+limit; z++) {
-      // Only place blocks on odd coordinates to create wide paths
+  // Maze Walls (Brown Dirt): Spaced out using odd coordinates for 1-block paths
+  for (let x = 16 - limit + 1; x < 16 + limit; x++) {
+    for (let z = 16 - limit + 1; z < 16 + limit; z++) {
+      if (x === 16 && z === 16) continue; // Keep gold center clear
+      if (x > 9 && x < 13 && z > 9 && z < 13) continue; // Keep spawn clear
+
       if (x % 2 !== 0 && z % 2 !== 0) {
         if (Math.random() > 0.5) g_map[x][z] = 1;
       }
     }
   }
 
-  g_map[16][16] = 4; // Gold treasure 
-
-  // Ensure starting zone is clear
-  for (let x = 9; x < 13; x++) {
-    for (let z = 9; z < 13; z++) g_map[x][z] = 0;
-  }
+  g_map[16][16] = 4; // Gold Block
 }
 
 function initTextures() {
@@ -149,23 +153,22 @@ function renderAllShapes() {
   if (!g_gameWon && g_map[cell.x] && g_map[cell.x][cell.z] === 4) {
       g_gameWon = true;
       let tc = document.getElementById('titleCanvas');
-      tc.style.display = 'block';
-      let ctx = tc.getContext('2d');
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      ctx.fillRect(0,0,600,600);
-      ctx.fillStyle = 'gold'; ctx.font = '30px Arial';
-      ctx.fillText("GOLD FOUND! Click to Restart", 100, 300);
+      if (tc) tc.style.display = 'block';
   }
+
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.uniformMatrix4fv(u_ProjectionMatrix, false, g_camera.projectionMatrix.elements);
   gl.uniformMatrix4fv(u_ViewMatrix, false, g_camera.viewMatrix.elements);
   
   let m = new Matrix4();
+  
+  // Ground
   let gP = [], gU = []; 
-  m.setTranslate(-16, -0.8, -16); m.scale(32, 0.05, 32);
+  m.setTranslate(-16, -0.8, -16); m.scale(32, 0.01, 32);
   pushCube(m, gP, gU);
   drawBatchedBatch(gP, gU, 1, [0.8, 0.7, 0.5, 1.0]);
 
+  // Map
   let dP = [], dU = [], goP = [], goU = []; 
   for(let x=0; x<MAP_SIZE; x++){
     for(let z=0; z<MAP_SIZE; z++){
@@ -175,23 +178,24 @@ function renderAllShapes() {
       else pushCube(m, dP, dU);
     }
   }
-  // Dirt block color changed to Brown
+  // Brown dirt color
   drawBatchedBatch(dP, dU, 4, [0.5, 0.25, 0.1, 1.0]); 
   drawBatchedBatch(goP, goU, 3, [1.0, 0.9, 0.0, 1.0]); 
 
+  // Skybox
   let sP = [], sU = []; 
-  m.setTranslate(0,0,0); m.scale(200, 200, 200); m.translate(-0.5, -0.5, -0.5);
+  m.setTranslate(0,0,0); m.scale(150, 150, 150); m.translate(-0.5, -0.5, -0.5);
   pushCube(m, sP, sU);
   gl.enable(gl.CULL_FACE);
   gl.cullFace(gl.FRONT);  
   drawBatchedBatch(sP, sU, -2, [0.5, 0.8, 1.0, 1.0]);
-  gl.cullFace(gl.BACK);
   gl.disable(gl.CULL_FACE);
 }
 
 function restartGame() {
   g_gameWon = false;
-  document.getElementById('titleCanvas').style.display = 'none';
+  let tc = document.getElementById('titleCanvas');
+  if (tc) tc.style.display = 'none';
   buildMap();
   g_camera.eye.set(new Vector3([-5.5, 0.0, -5.5]).elements); 
   g_camera.at.set(new Vector3([0, 0, 0]).elements);
@@ -242,28 +246,35 @@ function main() {
     if(ev.key === 'q') g_camera.panLeft();
     if(ev.key === 'e') g_camera.panRight();
     
+    // Collision
     let c = {x: Math.round(g_camera.eye.elements[0] + 16), z: Math.round(g_camera.eye.elements[2] + 16)};
-    if(g_map[c.x] && g_map[c.x][c.z] === 1) { g_camera.eye.elements[0] = oldX; g_camera.eye.elements[2] = oldZ; }
+    if(g_map[c.x] && g_map[c.x][c.z] === 1) { 
+      g_camera.eye.elements[0] = oldX; 
+      g_camera.eye.elements[2] = oldZ; 
+    }
   };
 
   document.getElementById('titleCanvas').onclick = restartGame;
 
   let frames = 0, fpsTime = performance.now();
   const fpsEl = document.getElementById('fpsCounter');
+  
   function tick() {
-    // Sinking fix: ensure player is always at least at y=0
-    if (g_isJumping || g_camera.eye.elements[1] > 0) {
-      g_camera.eye.elements[1] += g_verVelocity; g_camera.at.elements[1] += g_verVelocity;
-      g_verVelocity += G_GRAVITY;
-      if (g_camera.eye.elements[1] <= 0) { 
-        g_camera.eye.elements[1] = 0; 
-        g_verVelocity = 0; 
-        g_isJumping = false; 
-      }
-      g_camera.updateViewMatrix();
-    } else {
-      g_camera.eye.elements[1] = 0; // Lock floor position
+    // Ground collision / Sinking fix
+    if (g_camera.eye.elements[1] < 0) {
+      g_camera.eye.elements[1] = 0;
+      g_camera.at.elements[1] = 0;
+      g_verVelocity = 0;
+      g_isJumping = false;
     }
+
+    if (g_isJumping || g_camera.eye.elements[1] > 0) {
+      g_camera.eye.elements[1] += g_verVelocity; 
+      g_camera.at.elements[1] += g_verVelocity;
+      g_verVelocity += G_GRAVITY;
+      g_camera.updateViewMatrix();
+    }
+    
     renderAllShapes();
     frames++;
     const now = performance.now();
