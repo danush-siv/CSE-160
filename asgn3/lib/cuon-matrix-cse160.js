@@ -25,11 +25,11 @@ class Vector3 {
 	set(src) {
 		var i, s, d;
 
-		s = src.elements;
+		s = (src && src.elements) ? src.elements : src;
 		d = this.elements;
 
-		if (s === d) {
-		  return;
+		if (!s || s === d) {
+		  return this;
 		}
 
 		for (i = 0; i < 3; ++i) {
