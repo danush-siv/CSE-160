@@ -29,16 +29,15 @@ void main() {
   if (u_whichTexture == -2) {
     gl_FragColor = u_FragColor; // Sky
   } else {
-    vec4 texColor = vec4(1.0);
-    if (u_whichTexture == 1) texColor = texture2D(u_Sampler1, v_UV);
-    else if (u_whichTexture == 3) texColor = texture2D(u_Sampler3, v_UV);
-    else if (u_whichTexture == 4) texColor = texture2D(u_Sampler4, v_UV);
-    
-    // Safety: If texture is missing or weight is low, stay brown/gold
-    if (texColor.a < 0.1 || u_texColorWeight < 0.1) {
-       gl_FragColor = u_FragColor;
+    if (u_texColorWeight < 0.5) {
+      gl_FragColor = u_FragColor;
     } else {
-       gl_FragColor = mix(u_FragColor, texColor, u_texColorWeight);
+      vec4 texColor = vec4(1.0);
+      if (u_whichTexture == 1) texColor = texture2D(u_Sampler1, v_UV);
+      else if (u_whichTexture == 3) texColor = texture2D(u_Sampler3, v_UV);
+      else if (u_whichTexture == 4) texColor = texture2D(u_Sampler4, v_UV);
+      if (texColor.a < 0.1) gl_FragColor = u_FragColor;
+      else gl_FragColor = mix(u_FragColor, texColor, u_texColorWeight);
     }
   }
 }
@@ -97,6 +96,7 @@ function initTextures() {
     { unit: 3, file: 'gold.jpg', sampler: u_Sampler3 },
     { unit: 4, file: 'dirt.jpg', sampler: u_Sampler4 }
   ];
+  const base = window.location.href.replace(/[^/]*$/, '');
   textureData.forEach(data => {
     let texture = gl.createTexture();
     let image = new Image();
@@ -109,7 +109,8 @@ function initTextures() {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
       gl.uniform1i(data.sampler, data.unit);
     };
-    image.src = data.file;
+    image.onerror = function() { console.warn('Texture failed: ' + data.file); };
+    image.src = base + data.file;
   });
 }
 
@@ -242,6 +243,20 @@ function main() {
     if(ev.key === 'd') g_camera.moveRight();
     if(ev.key === 'q') g_camera.panLeft();
     if(ev.key === 'e') g_camera.panRight();
+
+    // R = add block, F = remove block (in front of player)
+    const fx = g_camera.eye.elements[0], fz = g_camera.eye.elements[2];
+    const dx = g_camera.at.elements[0] - fx, dz = g_camera.at.elements[2] - fz;
+    const len = Math.sqrt(dx * dx + dz * dz) || 1;
+    const nx = Math.round(fx + (dx / len) * 1.5 + 16), nz = Math.round(fz + (dz / len) * 1.5 + 16);
+    const onBorder = nx <= 0 || nx >= MAP_SIZE - 1 || nz <= 0 || nz >= MAP_SIZE - 1;
+    if (ev.key === 'r' && !onBorder && nx >= 0 && nx < MAP_SIZE && nz >= 0 && nz < MAP_SIZE) {
+      if (g_map[nx][nz] === 0 && !(nx === 16 && nz === 16)) g_map[nx][nz] = 1;
+    }
+    if (ev.key === 'f' && nx >= 0 && nx < MAP_SIZE && nz >= 0 && nz < MAP_SIZE) {
+      if (g_map[nx][nz] === 1) g_map[nx][nz] = 0;
+    }
+    if (ev.key === 'r' || ev.key === 'f') ev.preventDefault();
     
     // Collision detection
     let c = {x: Math.round(g_camera.eye.elements[0] + 16), z: Math.round(g_camera.eye.elements[2] + 16)};
