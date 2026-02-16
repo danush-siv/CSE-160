@@ -295,12 +295,24 @@ function main() {
 
   canvas.onmousedown = e => {
     if (e.button === 0 && !g_gameWon) {
-      const ex = g_camera.eye.elements[0], ey = g_camera.eye.elements[1], ez = g_camera.eye.elements[2];
-      const ax = g_camera.at.elements[0], ay = g_camera.at.elements[1], az = g_camera.at.elements[2];
-      let dx = ax - ex, dy = ay - ey, dz = az - ez;
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / canvas.width * 2 - 1;
+      const y = 1 - (e.clientY - rect.top) / canvas.height * 2;
+      const pv = new Matrix4(g_camera.projectionMatrix).multiply(g_camera.viewMatrix);
+      const inv = new Matrix4(pv).invert();
+      const nearClip = new Vector4([x, y, -1, 1]);
+      const farClip = new Vector4([x, y, 1, 1]);
+      const nearW = inv.multiplyVector4(nearClip);
+      const farW = inv.multiplyVector4(farClip);
+      const nw = nearW.elements[3];
+      const fw = farW.elements[3];
+      if (Math.abs(nw) < 1e-6) { g_mouseDown = true; g_lastMouseX = e.clientX; return; }
+      const ox = nearW.elements[0] / nw, oy = nearW.elements[1] / nw, oz = nearW.elements[2] / nw;
+      const fx = farW.elements[0] / fw, fy = farW.elements[1] / fw, fz = farW.elements[2] / fw;
+      let dx = fx - ox, dy = fy - oy, dz = fz - oz;
       const len = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1;
       dx /= len; dy /= len; dz /= len;
-      const result = rayHitGold(ex, ey, ez, dx, dy, dz);
+      const result = rayHitGold(ox, oy, oz, dx, dy, dz);
       if (result) {
         e.preventDefault();
         g_gameWon = true;
