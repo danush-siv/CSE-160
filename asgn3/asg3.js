@@ -50,6 +50,7 @@ let g_camera;
 let g_gameWon = false;
 let g_map = [];
 const MAP_SIZE = 32;
+const g_textureLoaded = { 1: false, 3: false, 4: false };
 
 function buildMap() {
   for (let x = 0; x < MAP_SIZE; x++) {
@@ -86,6 +87,7 @@ function initTextures() {
     let texture = gl.createTexture();
     let image = new Image();
     image.onload = function() {
+      g_textureLoaded[data.unit] = true;
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
       gl.activeTexture(gl.TEXTURE0 + data.unit);
       gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -104,7 +106,8 @@ function drawBatchedBatch(positions, uvs, textureNum, color) {
   if (positions.length === 0) return;
   gl.uniform1i(u_whichTexture, textureNum);
   gl.uniform4f(u_FragColor, color[0], color[1], color[2], color[3]);
-  gl.uniform1f(u_texColorWeight, textureNum >= 0 ? 1.0 : 0.0);
+  const useTexture = textureNum >= 0 && g_textureLoaded[textureNum];
+  gl.uniform1f(u_texColorWeight, useTexture ? 1.0 : 0.0);
   
   gl.uniformMatrix4fv(u_ModelMatrix, false, new Matrix4().elements);
   
@@ -211,6 +214,8 @@ function main() {
   u_Sampler4 = gl.getUniformLocation(gl.program, 'u_Sampler4');
 
   g_camera = new Camera();
+  g_camera.updateProjectionMatrix(canvas);
+  gl.viewport(0, 0, canvas.width, canvas.height);
   restartGame();
   initTextures();
 
@@ -236,15 +241,27 @@ function main() {
 
   document.getElementById('titleCanvas').onclick = restartGame;
 
-  let lastTime = performance.now();
+  window.addEventListener('resize', function() {
+    if (!canvas || !gl || !g_camera) return;
+    const w = canvas.clientWidth || 600;
+    const h = canvas.clientHeight || 600;
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      g_camera.updateProjectionMatrix(canvas);
+    }
+  });
+
   let frames = 0;
-  let fpsTime = lastTime;
+  let fpsTime = performance.now();
+  const fpsEl = document.getElementById('fpsCounter');
   function tick() {
     renderAllShapes();
     frames++;
     const now = performance.now();
-    if (now - fpsTime >= 1000) {
-      document.getElementById('fpsCounter').textContent = 'FPS: ' + Math.round(frames * 1000 / (now - fpsTime));
+    if (now - fpsTime >= 1000 && fpsEl) {
+      fpsEl.textContent = 'FPS: ' + Math.round(frames * 1000 / (now - fpsTime));
       frames = 0;
       fpsTime = now;
     }
