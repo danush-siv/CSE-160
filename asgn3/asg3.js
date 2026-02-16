@@ -26,19 +26,15 @@ uniform sampler2D u_Sampler1; // Sand
 uniform sampler2D u_Sampler3; // Gold
 uniform sampler2D u_Sampler4; // Dirt
 void main() {
-  if (u_whichTexture == -2) {
-    gl_FragColor = u_FragColor; // Sky
+  if (u_whichTexture == -2 || u_whichTexture == -1) {
+    gl_FragColor = u_FragColor; // Sky or solid (boundary, walls, gold)
   } else {
     vec4 texColor = vec4(1.0);
     if (u_whichTexture == 1) texColor = texture2D(u_Sampler1, v_UV);
     else if (u_whichTexture == 3) texColor = texture2D(u_Sampler3, v_UV);
     else if (u_whichTexture == 4) texColor = texture2D(u_Sampler4, v_UV);
-    
-    if (u_texColorWeight < 0.1 || texColor.a < 0.1) {
-       gl_FragColor = u_FragColor;
-    } else {
-       gl_FragColor = mix(u_FragColor, texColor, u_texColorWeight);
-    }
+    if (u_texColorWeight < 0.1 || texColor.a < 0.1) gl_FragColor = u_FragColor;
+    else gl_FragColor = mix(u_FragColor, texColor, u_texColorWeight);
   }
 }
 `;
@@ -244,6 +240,9 @@ function main() {
   if(!gl || !initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) return;
 
   gl.enable(gl.DEPTH_TEST);
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.clearColor(0.5, 0.8, 1.0, 1.0);
+
   a_Position = gl.getAttribLocation(gl.program, 'a_Position');
   a_UV = gl.getAttribLocation(gl.program, 'a_UV');
   u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor');
