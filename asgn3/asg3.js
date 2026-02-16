@@ -80,6 +80,7 @@ function initTextures() {
     { unit: 3, file: 'gold.jpg', sampler: u_Sampler3 },
     { unit: 4, file: 'dirt.jpg', sampler: u_Sampler4 }
   ];
+  const base = window.location.href.replace(/[^/]*$/, '');
 
   textureData.forEach(data => {
     let texture = gl.createTexture();
@@ -95,7 +96,7 @@ function initTextures() {
     image.onerror = function() {
       console.error("Failed to load: " + data.file + ". Reverting to solid colors.");
     };
-    image.src = data.file;
+    image.src = base + data.file;
   });
 }
 
@@ -235,6 +236,19 @@ function main() {
 
   document.getElementById('titleCanvas').onclick = restartGame;
 
-  function tick() { renderAllShapes(); requestAnimationFrame(tick); }
+  let lastTime = performance.now();
+  let frames = 0;
+  let fpsTime = lastTime;
+  function tick() {
+    renderAllShapes();
+    frames++;
+    const now = performance.now();
+    if (now - fpsTime >= 1000) {
+      document.getElementById('fpsCounter').textContent = 'FPS: ' + Math.round(frames * 1000 / (now - fpsTime));
+      frames = 0;
+      fpsTime = now;
+    }
+    requestAnimationFrame(tick);
+  }
   tick();
 }
