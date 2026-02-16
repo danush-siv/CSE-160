@@ -87,7 +87,7 @@ function buildMap() {
     g_map[i][MAP_SIZE - 1] = 2;
   }
 
-  // Recursive Backtracking: 10x10 rooms with 3-cell spacing for more breathing room
+  // Recursive Backtracking: 10x10 rooms, 3-cell spacing, 2-cell-wide corridors (so you don't get stuck)
   const R = 10, C = 10;
   const visited = new Array(R * C).fill(false);
   const stack = [{r: 0, c: 0}];
@@ -110,6 +110,7 @@ function buildMap() {
       visited[next.r * C + next.c] = true;
       g_map[2 + 3 * next.r][2 + 3 * next.c] = 0;
       g_map[2 + 3 * curr.r + (next.r - curr.r)][2 + 3 * curr.c + (next.c - curr.c)] = 0;
+      g_map[2 + 3 * curr.r + 2 * (next.r - curr.r)][2 + 3 * curr.c + 2 * (next.c - curr.c)] = 0;
       stack.push(next);
     }
   }
