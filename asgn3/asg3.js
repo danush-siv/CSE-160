@@ -109,11 +109,16 @@ function buildMap() {
     }
   }
 
-  // Clear accessibility areas
+  // Clear spawn and area around gold
   for (let x = 15; x <= 17; x++) for (let z = 15; z <= 17; z++) g_map[x][z] = 0;
   for (let x = 10; x <= 12; x++) for (let z = 10; z <= 12; z++) g_map[x][z] = 0;
 
   g_map[16][16] = 4; // Gold Block
+
+  // Interior walls that remain are two blocks tall (3). Value 1 = one block left after F.
+  for (let x = 1; x < MAP_SIZE - 1; x++)
+    for (let z = 1; z < MAP_SIZE - 1; z++)
+      if (g_map[x][z] === 1) g_map[x][z] = 3;
 }
 
 function initTextures() {
@@ -122,6 +127,7 @@ function initTextures() {
     { unit: 3, file: 'gold.jpg', sampler: u_Sampler3 },
     { unit: 4, file: 'dirt.jpg', sampler: u_Sampler4 }
   ];
+  const base = window.location.href.replace(/[^/]*$/, '');
   textureData.forEach(data => {
     let texture = gl.createTexture();
     let image = new Image();
@@ -134,7 +140,8 @@ function initTextures() {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
       gl.uniform1i(data.sampler, data.unit);
     };
-    image.src = data.file;
+    image.onerror = function() { console.warn('Texture failed: ' + data.file); };
+    image.src = base + data.file;
   });
 }
 
@@ -171,20 +178,6 @@ function pushCube(matrix, posArr, uvArr) {
 }
 
 function renderAllShapes() {
-  const cell = {x: Math.round(g_camera.eye.elements[0] + 16), z: Math.round(g_camera.eye.elements[2] + 16)};
-  if (!g_gameWon && g_map[cell.x] && g_map[cell.x][cell.z] === 4) {
-      g_gameWon = true;
-      let tc = document.getElementById('titleCanvas');
-      if (tc) {
-        tc.style.display = 'block';
-        let ctx = tc.getContext('2d');
-        ctx.fillStyle = 'rgba(0,0,0,0.7)';
-        ctx.fillRect(0,0,600,600);
-        ctx.fillStyle = 'gold'; ctx.font = '30px Arial';
-        ctx.fillText("GOLD FOUND! Click to Restart", 100, 300);
-      }
-  }
-
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.uniformMatrix4fv(u_ProjectionMatrix, false, g_camera.projectionMatrix.elements);
   gl.uniformMatrix4fv(u_ViewMatrix, false, g_camera.viewMatrix.elements);
@@ -197,20 +190,33 @@ function renderAllShapes() {
   pushCube(m, gP, gU);
   drawBatchedBatch(gP, gU, 1, [0.8, 0.7, 0.5, 1.0]);
 
-  // Map
+  // Map: 0=empty, 1=one block (half wall), 2=boundary, 3=two blocks (full wall), 4=gold
   let bndP = [], bndU = [], dP = [], dU = [], goP = [], goU = [];
-  for(let x=0; x<MAP_SIZE; x++){
-    for(let z=0; z<MAP_SIZE; z++){
-      if(g_map[x][z] === 0) continue;
-      m.setTranslate(x - 16, -0.8, z - 16);
-      if(g_map[x][z] === 2) pushCube(m, bndP, bndU);
-      else if(g_map[x][z] === 4) pushCube(m, goP, goU);
-      else pushCube(m, dP, dU);
+  for (let x = 0; x < MAP_SIZE; x++) {
+    for (let z = 0; z < MAP_SIZE; z++) {
+      const v = g_map[x][z];
+      if (v === 0) continue;
+      const tx = x - 16, tz = z - 16;
+      if (v === 2) {
+        m.setTranslate(tx, -0.8, tz);
+        pushCube(m, bndP, bndU);
+      } else if (v === 4) {
+        m.setTranslate(tx, -0.8, tz);
+        pushCube(m, goP, goU);
+      } else {
+        // v === 1 or 3: brown wall. Bottom cube always; top cube only if 3.
+        m.setTranslate(tx, -0.8, tz);
+        pushCube(m, dP, dU);
+        if (v === 3) {
+          m.setTranslate(tx, 0.2, tz);
+          pushCube(m, dP, dU);
+        }
+      }
     }
   }
   drawBatchedBatch(bndP, bndU, -1, [0.15, 0.15, 0.15, 1.0]); // Boundary
-  drawBatchedBatch(dP, dU, 4, [0.45, 0.28, 0.12, 1.0]); // Brown Walls
-  drawBatchedBatch(goP, goU, 3, [1.0, 0.9, 0.0, 1.0]); // Gold
+  drawBatchedBatch(dP, dU, -1, [0.45, 0.28, 0.12, 1.0]);     // Brown walls (solid)
+  drawBatchedBatch(goP, goU, -1, [1.0, 0.9, 0.0, 1.0]);      // Gold
 
   // Skybox
   let sP = [], sU = []; 
@@ -280,14 +286,21 @@ function main() {
     const len = Math.sqrt(dx * dx + dz * dz) || 1;
     const nx = Math.round(fx + (dx / len) * 1.5 + 16), nz = Math.round(fz + (dz / len) * 1.5 + 16);
     
-    // Remove individual wall blocks
-    if (ev.key === 'f' && nx > 0 && nx < MAP_SIZE-1 && nz > 0 && nz < MAP_SIZE-1) {
-      if (g_map[nx][nz] === 1) g_map[nx][nz] = 0; 
+    // R: add two-block wall in front
+    if (ev.key === 'r' && nx > 0 && nx < MAP_SIZE - 1 && nz > 0 && nz < MAP_SIZE - 1) {
+      if (g_map[nx][nz] === 0 && !(nx === 16 && nz === 16)) g_map[nx][nz] = 3;
     }
-    
-    // Collision
-    let c = {x: Math.round(g_camera.eye.elements[0] + 16), z: Math.round(g_camera.eye.elements[2] + 16)};
-    if(g_map[c.x] && (g_map[c.x][c.z] === 1 || g_map[c.x][c.z] === 2)) { 
+    // F: deconstruct block by block (3 -> 1 -> 0)
+    if (ev.key === 'f' && nx > 0 && nx < MAP_SIZE - 1 && nz > 0 && nz < MAP_SIZE - 1) {
+      const cell = g_map[nx][nz];
+      if (cell === 3) g_map[nx][nz] = 1;
+      else if (cell === 1) g_map[nx][nz] = 0;
+    }
+    if (ev.key === 'r' || ev.key === 'f') ev.preventDefault();
+
+    // Collision: can't walk through boundary (2), half wall (1), or full wall (3)
+    let c = { x: Math.round(g_camera.eye.elements[0] + 16), z: Math.round(g_camera.eye.elements[2] + 16) };
+    if (g_map[c.x] && (g_map[c.x][c.z] === 1 || g_map[c.x][c.z] === 2 || g_map[c.x][c.z] === 3)) { 
       g_camera.eye.elements[0] = oldX; 
       g_camera.eye.elements[2] = oldZ; 
     }
