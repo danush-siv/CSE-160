@@ -1,0 +1,91 @@
+<!-- Danush Sivarajan, 1932047, CSE 160 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASG4 - Desert Ruins (Phong Lighting)</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23d4a017'/><rect x='4' y='4' width='24' height='24' fill='%23f0c040'/></svg>" type="image/svg+xml" />
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+    .info p { margin: 0.25em 0; font-weight: bold; }
+    canvas { display: block; margin: 10px 0; border: 2px solid #333; background: #1a1a2e; }
+    .story { font-style: italic; color: #444; max-width: 660px; margin: 0.5em 0 1em 0; line-height: 1.5; }
+    #pointer { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; text-align: center; z-index: 1; }
+    #pointer .reticle { width: 20px; height: 20px; margin: -10px auto 4px; border: 2px solid rgba(255,255,255,0.8); border-radius: 50%; box-sizing: border-box; }
+    #pointer.can-remove .reticle { border-color: #6f6; box-shadow: 0 0 8px #6f6; }
+    #pointer .label { font-size: 12px; color: rgba(255,255,255,0.9); text-shadow: 0 0 4px #000; display: none; }
+    #pointer.can-remove .label { display: block; color: #6f6; }
+    #controls { background: #e8e8e8; padding: 12px 16px; border-radius: 8px; max-width: 660px; margin-bottom: 10px; }
+    #controls button { padding: 6px 14px; margin: 3px 4px 3px 0; border: 1px solid #999; border-radius: 4px; cursor: pointer; font-size: 13px; background: #fff; }
+    #controls button:hover { background: #ddd; }
+    #controls .row { display: flex; align-items: center; gap: 8px; margin: 5px 0; flex-wrap: wrap; }
+    #controls .row label { min-width: 55px; font-weight: bold; font-size: 13px; }
+    #controls input[type=range] { width: 180px; }
+    #controls .val { min-width: 36px; font-size: 13px; text-align: right; }
+    .what { margin-top: 1.5em; padding: 1em; background: #f0f0f0; border-radius: 6px; max-width: 660px; }
+    .what ol { margin: 0.5em 0; padding-left: 20px; }
+    .what p { margin: 0.5em 0; }
+  </style>
+</head>
+<body onload="main()">
+  <div class="info">
+    <h1 style="margin-bottom: 0.25em;">ASG4 - Desert Ruins (Phong Lighting)</h1>
+    <p>Name: Danush Sivarajan</p>
+    <p>Email: dsivaraj@ucsc.edu</p>
+    <p>ID: 1932047</p>
+  </div>
+
+  <p class="story">Far far away, a brave little princess left her castle to find the golden treasure the desert winds had whispered about. The ruins had grown into a twisty maze, and the walls were so shy they sometimes got in the way, but she knew that if she tapped the golden block with her finger, the treasure would be hers at last.</p>
+
+  <div id="controls">
+    <div>
+      <button id="btnLightToggle">Lighting: ON</button>
+      <button id="btnNormalVis">Normal Vis: OFF</button>
+      <button id="btnSpotlight">Spotlight: OFF</button>
+      <button id="btnAnimate">Animate Light: ON</button>
+    </div>
+    <div class="row"><label>Light X:</label><input type="range" id="lightX" min="-20" max="20" value="0" step="0.1"><span class="val" id="lightXVal">0.0</span></div>
+    <div class="row"><label>Light Y:</label><input type="range" id="lightY" min="-5" max="20" value="5" step="0.1"><span class="val" id="lightYVal">5.0</span></div>
+    <div class="row"><label>Light Z:</label><input type="range" id="lightZ" min="-20" max="20" value="0" step="0.1"><span class="val" id="lightZVal">0.0</span></div>
+    <div class="row"><label>Light R:</label><input type="range" id="lightR" min="0" max="1" value="1" step="0.01"><label>G:</label><input type="range" id="lightG" min="0" max="1" value="1" step="0.01"><label>B:</label><input type="range" id="lightB" min="0" max="1" value="1" step="0.01"></div>
+  </div>
+
+  <p><strong>Goal:</strong> Find the golden treasure by going through the maze or destroying the blocks.</p>
+
+  <div style="position:relative; display:inline-block;">
+    <canvas id="webgl" width="600" height="600" style="width:600px; height:600px;">Please use a browser that supports canvas.</canvas>
+    <canvas id="titleCanvas" width="600" height="600" style="position:absolute; top:0; left:0; pointer-events:auto; display:none;"></canvas>
+    <div id="pointer">
+      <div class="reticle"></div>
+      <span class="label">F to remove</span>
+    </div>
+  </div>
+
+  <p id="fpsCounter">FPS: --</p>
+  <p>
+    <strong>Controls:</strong> W/S — forward/back &nbsp; A/D — left/right &nbsp;
+    Q/E — turn &nbsp; Mouse drag — look around &nbsp;
+    Space — jump &nbsp; R — add block &nbsp; F — remove block
+  </p>
+
+  <div class="what">
+    <p style="font-weight: bold; margin-top: 0;">What You're Looking At:</p>
+    <ol>
+      <li><strong>Phong-lit world:</strong> The desert maze from ASG3, now illuminated by a moving point light with ambient, diffuse, and specular components.</li>
+      <li><strong>Spheres &amp; Torus:</strong> Two spheres and a spinning torus demonstrate smooth Phong shading on curved geometry (the torus serves as the OBJ-complexity model).</li>
+      <li><strong>Light controls:</strong> Sliders move the point light and change its color. Toggle buttons control lighting, normal visualization, spotlight, and light animation.</li>
+      <li><strong>Spotlight:</strong> A cone light pointing straight down from above, adding focused illumination.</li>
+    </ol>
+  </div>
+
+  <script src="./lib/cuon-matrix-cse160.js"></script>
+  <script src="./lib/cuon-utils.js"></script>
+  <script src="./lib/webgl-utils.js"></script>
+  <script src="./lib/webgl-debug.js"></script>
+  <script src="./camera.js"></script>
+  <script src="./Cube.js"></script>
+  <script src="./Sphere.js"></script>
+  <script src="./asg4.js"></script>
+</body>
+</html>
