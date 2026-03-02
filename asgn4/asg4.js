@@ -311,7 +311,7 @@ function renderAllShapes() {
 
   // ── Sphere ──
   g_sphere1.matrix.setTranslate(-4, 0.7, -4);
-  g_sphere1.matrix.scale(1.5, 1.5, 1.5);
+  g_sphere1.matrix.scale(0.3, 0.3, 0.3);
   g_sphere1.color = [0.2, 0.6, 1.0, 1.0];
   g_sphere1.render();
 }
