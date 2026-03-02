@@ -147,6 +147,73 @@ let g_lightColor = [1, 1, 1];
 
 // Scene objects
 let g_sphere1;
+let g_objModel = null;
+
+// ─── OBJ loader (simple: v, vn, f v//vn) ───────────────────────────────────
+
+function parseOBJ(text) {
+  const lines = text.split('\n');
+  const v = [], vn = [];
+  const outP = [], outN = [], outU = [];
+  for (const line of lines) {
+    const parts = line.trim().split(/\s+/);
+    if (parts[0] === 'v' && parts.length >= 4) {
+      v.push(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]));
+    } else if (parts[0] === 'vn' && parts.length >= 4) {
+      vn.push(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]));
+    } else if (parts[0] === 'f' && parts.length >= 4) {
+      const tri = (a, b, c) => {
+        const idx = (s) => { const n = s.split('/'); return parseInt(n[0], 10) - 1; };
+        const nidx = (s) => { const n = s.split('/'); return parseInt(n[n.length - 1], 10) - 1; };
+        for (const i of [a, b, c]) {
+          const vi = idx(parts[i]) * 3, ni = nidx(parts[i]) * 3;
+          outP.push(v[vi], v[vi+1], v[vi+2]);
+          outN.push(vn[ni], vn[ni+1], vn[ni+2]);
+          outU.push(0, 0);
+        }
+      };
+      tri(1, 2, 3);
+      if (parts.length === 5) tri(1, 3, 4);
+    }
+  }
+  return { positions: new Float32Array(outP), normals: new Float32Array(outN), uvs: new Float32Array(outU), count: outP.length / 3 };
+}
+
+function OBJModel(data) {
+  this.color = [0.9, 0.5, 0.2, 1.0];
+  this.matrix = new Matrix4();
+  this.textureNum = -1;
+  this.positions = data.positions;
+  this.normals = data.normals;
+  this.uvs = data.uvs;
+  this.count = data.count;
+  this._vBuf = this._nBuf = this._uBuf = null;
+}
+
+OBJModel.prototype.render = function() {
+  gl.uniform1i(u_whichTexture, this.textureNum);
+  gl.uniform4f(u_FragColor, this.color[0], this.color[1], this.color[2], this.color[3]);
+  gl.uniform1f(u_texColorWeight, 0.0);
+  gl.uniformMatrix4fv(u_ModelMatrix, false, this.matrix.elements);
+  const nm = new Matrix4(); nm.setInverseOf(this.matrix); nm.transpose();
+  gl.uniformMatrix4fv(u_NormalMatrix, false, nm.elements);
+  if (!this._vBuf) this._vBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, this._vBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, this.positions, gl.STATIC_DRAW);
+  gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(a_Position);
+  if (!this._nBuf) this._nBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, this._nBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, this.normals, gl.STATIC_DRAW);
+  gl.vertexAttribPointer(a_Normal, 3, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(a_Normal);
+  if (!this._uBuf) this._uBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, this._uBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, this.uvs, gl.STATIC_DRAW);
+  gl.vertexAttribPointer(a_UV, 2, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(a_UV);
+  gl.drawArrays(gl.TRIANGLES, 0, this.count);
+};
 
 // ─── Cube geometry (36 verts) with face normals ─────────────────────────────
 
@@ -314,6 +381,13 @@ function renderAllShapes() {
   g_sphere1.matrix.scale(1.5, 1.5, 1.5);
   g_sphere1.color = [0.2, 0.6, 1.0, 1.0];
   g_sphere1.render();
+
+  // ── OBJ model (lighting applies via same shader) ──
+  if (g_objModel) {
+    g_objModel.matrix.setTranslate(2, 0.5, -3);
+    g_objModel.matrix.scale(1.2, 1.2, 1.2);
+    g_objModel.render();
+  }
 }
 
 // ─── Game logic ─────────────────────────────────────────────────────────────
@@ -406,6 +480,11 @@ function main() {
   restartGame();
   initTextures();
   setupControls();
+
+  const base = window.location.href.replace(/[^/]*$/, '');
+  fetch(base + 'model.obj').then(r => r.text()).then(text => {
+    try { g_objModel = new OBJModel(parseOBJ(text)); } catch (e) { console.warn('OBJ load failed:', e); }
+  }).catch(() => console.warn('Could not fetch model.obj'));
 
   // ── Mouse interaction ──
   canvas.onmousedown = e => {
