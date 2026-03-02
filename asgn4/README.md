@@ -24,6 +24,10 @@ I integrated the world from Assignment 3 into this project with some changes. Th
 3. Adjust Light X/Y/Z to move the point light; Light R/G/B to change its color
 4. Move with W/S/A/D and turn with Q/E or mouse drag
 
+## Live Demo
+
+Visit: https://danush-siv.github.io/CSE-160/asgn4/asg4.html
+
 ## Credits / Tools
 
 - World and camera setup adapted from Assignment 3 (Desert Ruins) with modifications as described above.
