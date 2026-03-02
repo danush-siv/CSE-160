@@ -311,7 +311,7 @@ function renderAllShapes() {
 
   // ── Sphere ──
   g_sphere1.matrix.setTranslate(-4, 0.7, -4);
-  g_sphere1.matrix.scale(0.3, 0.3, 0.3);
+  g_sphere1.matrix.scale(1.5, 1.5, 1.5);
   g_sphere1.color = [0.2, 0.6, 1.0, 1.0];
   g_sphere1.render();
 }
@@ -320,8 +320,8 @@ function renderAllShapes() {
 
 function restartGame() {
   buildMap();
-  g_camera.eye.set(new Vector3([-5.5, 0.0, -5.5]).elements);
-  g_camera.at.set(new Vector3([0, 0, 0]).elements);
+  g_camera.eye.set(new Vector3([-12, 2, -12]).elements);
+  g_camera.at.set(new Vector3([-4, 0.5, -4]).elements);
   g_camera.updateViewMatrix();
 }
 
