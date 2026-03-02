@@ -441,6 +441,9 @@ function main() {
     }
   };
 
+  const titleCanvasEl = document.getElementById('titleCanvas');
+  if (titleCanvasEl) titleCanvasEl.onclick = restartGame;
+
   // ── Render loop ──
   let frames = 0, fpsTime = performance.now();
   const fpsEl = document.getElementById('fpsCounter');
