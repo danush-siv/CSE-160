@@ -125,7 +125,6 @@ let u_LightOn, u_NormalVis, u_LightPos, u_LightColor, u_CameraPos;
 let u_SpotOn, u_SpotPos, u_SpotDir, u_SpotCutoff;
 
 let g_camera;
-let g_gameWon = false;
 let g_map = [];
 const MAP_SIZE = 32;
 const g_textureLoaded = { 1: false, 3: false, 4: false };
@@ -147,7 +146,7 @@ let g_lightPos = [0, 5, 0];
 let g_lightColor = [1, 1, 1];
 
 // Scene objects
-let g_sphere1, g_sphere2, g_torus;
+let g_sphere1;
 
 // ─── Cube geometry (36 verts) with face normals ─────────────────────────────
 
@@ -216,121 +215,15 @@ function drawBatch(pos, uvs, norms, texNum, color) {
   gl.deleteBuffer(nBuf);
 }
 
-// ─── Torus mesh (OBJ-style complex shape) ───────────────────────────────────
-
-function buildTorus(R, r, N, n) {
-  const verts = [], norms = [], uvs = [], idx = [];
-  for (let i = 0; i <= N; i++) {
-    const theta = 2 * Math.PI * i / N;
-    const ct = Math.cos(theta), st = Math.sin(theta);
-    for (let j = 0; j <= n; j++) {
-      const phi = 2 * Math.PI * j / n;
-      const cp = Math.cos(phi), sp = Math.sin(phi);
-      const x = (R + r * cp) * ct;
-      const y = r * sp;
-      const z = (R + r * cp) * st;
-      verts.push(x, y, z);
-      norms.push(cp * ct, sp, cp * st);
-      uvs.push(i / N, j / n);
-    }
-  }
-  for (let i = 0; i < N; i++) {
-    for (let j = 0; j < n; j++) {
-      const a = i * (n + 1) + j, b = a + n + 1;
-      idx.push(a, b, a + 1, b, b + 1, a + 1);
-    }
-  }
-  return {
-    verts: new Float32Array(verts),
-    normals: new Float32Array(norms),
-    uvs: new Float32Array(uvs),
-    indices: new Uint16Array(idx),
-    numIndices: idx.length
-  };
-}
-
-class TorusModel {
-  constructor() {
-    this.color = [0.85, 0.45, 0.15, 1.0];
-    this.matrix = new Matrix4();
-    this.textureNum = -1;
-    const d = buildTorus(0.6, 0.25, 30, 16);
-    this.verts = d.verts;
-    this.normals = d.normals;
-    this.uvs = d.uvs;
-    this.indices = d.indices;
-    this.numIndices = d.numIndices;
-    this._vB = null; this._nB = null; this._uB = null; this._iB = null;
-  }
-
-  render() {
-    gl.uniform1i(u_whichTexture, this.textureNum);
-    gl.uniform4f(u_FragColor, this.color[0], this.color[1], this.color[2], this.color[3]);
-    gl.uniform1f(u_texColorWeight, 0.0);
-    gl.uniformMatrix4fv(u_ModelMatrix, false, this.matrix.elements);
-    const nm = new Matrix4(); nm.setInverseOf(this.matrix); nm.transpose();
-    gl.uniformMatrix4fv(u_NormalMatrix, false, nm.elements);
-
-    if (!this._vB) this._vB = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, this._vB);
-    gl.bufferData(gl.ARRAY_BUFFER, this.verts, gl.STATIC_DRAW);
-    gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(a_Position);
-
-    if (!this._nB) this._nB = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, this._nB);
-    gl.bufferData(gl.ARRAY_BUFFER, this.normals, gl.STATIC_DRAW);
-    gl.vertexAttribPointer(a_Normal, 3, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(a_Normal);
-
-    if (!this._uB) this._uB = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, this._uB);
-    gl.bufferData(gl.ARRAY_BUFFER, this.uvs, gl.STATIC_DRAW);
-    gl.vertexAttribPointer(a_UV, 2, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(a_UV);
-
-    if (!this._iB) this._iB = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._iB);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.indices, gl.STATIC_DRAW);
-
-    gl.drawElements(gl.TRIANGLES, this.numIndices, gl.UNSIGNED_SHORT, 0);
-  }
-}
-
-// ─── Map builder (same recursive backtracking maze as asg3) ─────────────────
+// ─── Map builder (ground + boundary only, no maze) ─────────────────────────
 
 function buildMap() {
   g_map = new Array(MAP_SIZE);
-  for (let x = 0; x < MAP_SIZE; x++) g_map[x] = new Int8Array(MAP_SIZE).fill(1);
+  for (let x = 0; x < MAP_SIZE; x++) g_map[x] = new Int8Array(MAP_SIZE).fill(0);
   for (let i = 0; i < MAP_SIZE; i++) {
     g_map[0][i] = 2; g_map[MAP_SIZE-1][i] = 2;
     g_map[i][0] = 2; g_map[i][MAP_SIZE-1] = 2;
   }
-  const R = 10, C = 10;
-  const visited = new Array(R * C).fill(false);
-  const stack = [{r:0,c:0}];
-  visited[0] = true;
-  g_map[2][2] = 0;
-  const dr = [-1,1,0,0], dc = [0,0,-1,1];
-  while (stack.length) {
-    const curr = stack[stack.length - 1];
-    const nb = [];
-    for (let i = 0; i < 4; i++) {
-      const nr = curr.r+dr[i], nc = curr.c+dc[i];
-      if (nr>=0 && nr<R && nc>=0 && nc<C && !visited[nr*C+nc]) nb.push({r:nr,c:nc,dir:i});
-    }
-    if (!nb.length) { stack.pop(); continue; }
-    const next = nb[Math.floor(Math.random()*nb.length)];
-    visited[next.r*C+next.c] = true;
-    g_map[2+3*next.r][2+3*next.c] = 0;
-    g_map[2+3*curr.r+(next.r-curr.r)][2+3*curr.c+(next.c-curr.c)] = 0;
-    g_map[2+3*curr.r+2*(next.r-curr.r)][2+3*curr.c+2*(next.c-curr.c)] = 0;
-    stack.push(next);
-  }
-  for (let x=15;x<=17;x++) for(let z=15;z<=17;z++) g_map[x][z]=0;
-  for (let x=10;x<=12;x++) for(let z=10;z<=12;z++) g_map[x][z]=0;
-  g_map[16][16] = 4;
-  for (let x=1;x<MAP_SIZE-1;x++) for(let z=1;z<MAP_SIZE-1;z++) if(g_map[x][z]===1) g_map[x][z]=3;
 }
 
 // ─── Textures ───────────────────────────────────────────────────────────────
@@ -356,24 +249,6 @@ function initTextures() {
     img.onerror = () => console.warn('Texture failed: ' + d.file);
     img.src = base + d.file;
   });
-}
-
-// ─── Ray / gold hit ─────────────────────────────────────────────────────────
-
-function rayHitGold(ox,oy,oz,dx,dy,dz) {
-  const min=[0,-0.8,0], max=[1,0.2,1], o=[ox,oy,oz], d=[dx,dy,dz];
-  let tMin=-Infinity, tMax=Infinity;
-  for (let i=0;i<3;i++) {
-    if (Math.abs(d[i])<1e-6) { if(o[i]<min[i]||o[i]>max[i]) return null; }
-    else {
-      let t1=(min[i]-o[i])/d[i], t2=(max[i]-o[i])/d[i];
-      if(t1>t2){const tmp=t1;t1=t2;t2=tmp;}
-      tMin=Math.max(tMin,t1); tMax=Math.min(tMax,t2);
-      if(tMin>tMax) return null;
-    }
-  }
-  const t = tMin>=0?tMin:tMax;
-  return t>=0&&t<100?{hit:true,t}:null;
 }
 
 // ─── Render ─────────────────────────────────────────────────────────────────
@@ -404,34 +279,17 @@ function renderAllShapes() {
   pushCube(m, gP, gU, gN);
   drawBatch(gP, gU, gN, 1, [0.8, 0.7, 0.5, 1.0]);
 
-  // ── Map walls ──
+  // ── Boundary walls ──
   let bndP=[], bndU=[], bndN=[];
-  let dP=[], dU=[], dN=[];
-  let goP=[], goU=[], goN=[];
   for (let x=0; x<MAP_SIZE; x++) {
     for (let z=0; z<MAP_SIZE; z++) {
-      const v = g_map[x][z];
-      if (v===0) continue;
+      if (g_map[x][z] !== 2) continue;
       const tx=x-16, tz=z-16;
-      if (v===2) {
-        m.setTranslate(tx+.5,-.8,tz+.5); m.scale(.75,1,.75); m.translate(-.5,-.5,-.5);
-        pushCube(m, bndP, bndU, bndN);
-      } else if (v===4) {
-        m.setTranslate(tx, -.8, tz);
-        pushCube(m, goP, goU, goN);
-      } else {
-        m.setTranslate(tx+.5,-.8,tz+.5); m.scale(.75,1,.75); m.translate(-.5,-.5,-.5);
-        pushCube(m, dP, dU, dN);
-        if (v===3) {
-          m.setTranslate(tx+.5,.2,tz+.5); m.scale(.75,1,.75); m.translate(-.5,-.5,-.5);
-          pushCube(m, dP, dU, dN);
-        }
-      }
+      m.setTranslate(tx+.5,-.8,tz+.5); m.scale(.75,1,.75); m.translate(-.5,-.5,-.5);
+      pushCube(m, bndP, bndU, bndN);
     }
   }
   drawBatch(bndP, bndU, bndN, -1, [0.15,0.15,0.15,1]);
-  drawBatch(dP,   dU, dN,   -1, [0.45,0.28,0.12,1]);
-  drawBatch(goP,  goU, goN,  -1, [1.0,0.9,0.0,1]);
 
   // ── Skybox ──
   let sP=[], sU=[], sN=[];
@@ -451,29 +309,16 @@ function renderAllShapes() {
   drawBatch(lP, lU, lN, -1, [1,1,0.3,1]);
   gl.uniform1i(u_LightOn, prevLightOn ? 1 : 0);
 
-  // ── Spheres ──
+  // ── Sphere ──
   g_sphere1.matrix.setTranslate(-4, 0.7, -4);
   g_sphere1.matrix.scale(1.5, 1.5, 1.5);
   g_sphere1.color = [0.2, 0.6, 1.0, 1.0];
   g_sphere1.render();
-
-  g_sphere2.matrix.setTranslate(2, 0.2, -2);
-  g_sphere2.color = [1.0, 0.3, 0.3, 1.0];
-  g_sphere2.render();
-
-  // ── Torus (OBJ-style complex model) ──
-  g_torus.matrix.setTranslate(-2, 1.5, -3);
-  g_torus.matrix.rotate(performance.now() * 0.03, 0, 1, 0);
-  g_torus.matrix.rotate(30, 1, 0, 0);
-  g_torus.render();
 }
 
 // ─── Game logic ─────────────────────────────────────────────────────────────
 
 function restartGame() {
-  g_gameWon = false;
-  const tc = document.getElementById('titleCanvas');
-  if (tc) tc.style.display = 'none';
   buildMap();
   g_camera.eye.set(new Vector3([-5.5, 0.0, -5.5]).elements);
   g_camera.at.set(new Vector3([0, 0, 0]).elements);
@@ -555,8 +400,6 @@ function main() {
 
   // Scene objects
   g_sphere1 = new Sphere(24, 24);
-  g_sphere2 = new Sphere(20, 20);
-  g_torus   = new TorusModel();
 
   g_camera = new Camera();
   g_camera.updateProjectionMatrix(canvas);
@@ -566,35 +409,6 @@ function main() {
 
   // ── Mouse interaction ──
   canvas.onmousedown = e => {
-    if (e.button === 0 && !g_gameWon) {
-      const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / canvas.width * 2 - 1;
-      const y = 1 - (e.clientY - rect.top) / canvas.height * 2;
-      const pv = new Matrix4(g_camera.projectionMatrix).multiply(g_camera.viewMatrix);
-      const inv = new Matrix4(pv).invert();
-      const nearW = inv.multiplyVector4(new Vector4([x, y, -1, 1]));
-      const farW  = inv.multiplyVector4(new Vector4([x, y, 1, 1]));
-      const nw = nearW.elements[3], fw = farW.elements[3];
-      if (Math.abs(nw) >= 1e-6) {
-        const ox=nearW.elements[0]/nw, oy=nearW.elements[1]/nw, oz=nearW.elements[2]/nw;
-        const fx=farW.elements[0]/fw,  fy=farW.elements[1]/fw,  fz=farW.elements[2]/fw;
-        let dx=fx-ox, dy=fy-oy, dz=fz-oz;
-        const len=Math.sqrt(dx*dx+dy*dy+dz*dz)||1;
-        dx/=len; dy/=len; dz/=len;
-        if (rayHitGold(ox,oy,oz,dx,dy,dz)) {
-          e.preventDefault();
-          g_gameWon = true;
-          const tc = document.getElementById('titleCanvas');
-          if (tc) {
-            tc.style.display = 'block';
-            const ctx = tc.getContext('2d');
-            ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0,0,600,600);
-            ctx.fillStyle = 'gold'; ctx.font = '30px Arial';
-            ctx.fillText('GOLD FOUND! Click to Restart', 100, 300);
-          }
-        }
-      }
-    }
     g_mouseDown = true;
     g_lastMouseX = e.clientX;
     g_lastMouseY = e.clientY;
@@ -612,7 +426,6 @@ function main() {
 
   // ── Keyboard ──
   document.onkeydown = ev => {
-    if (g_gameWon) return;
     const oldX = g_camera.eye.elements[0], oldZ = g_camera.eye.elements[2];
     if (ev.code==='Space' && !g_isJumping) { g_verVelocity=G_JUMP_FORCE; g_isJumping=true; }
     if (ev.key==='w') g_camera.moveForward();
@@ -622,27 +435,11 @@ function main() {
     if (ev.key==='q') g_camera.panLeft();
     if (ev.key==='e') g_camera.panRight();
 
-    const fx=g_camera.eye.elements[0], fz=g_camera.eye.elements[2];
-    const dx=g_camera.at.elements[0]-fx, dz=g_camera.at.elements[2]-fz;
-    const len=Math.sqrt(dx*dx+dz*dz)||1;
-    const nx=Math.round(fx+(dx/len)*1.5+16), nz=Math.round(fz+(dz/len)*1.5+16);
-
-    if (ev.key==='r' && nx>0 && nx<MAP_SIZE-1 && nz>0 && nz<MAP_SIZE-1) {
-      if (g_map[nx][nz]===0 && !(nx===16&&nz===16)) g_map[nx][nz]=3;
-    }
-    if (ev.key==='f' && nx>0 && nx<MAP_SIZE-1 && nz>0 && nz<MAP_SIZE-1) {
-      const cell = g_map[nx][nz];
-      if (cell===3) g_map[nx][nz]=1; else if(cell===1) g_map[nx][nz]=0;
-    }
-    if (ev.key==='r'||ev.key==='f') ev.preventDefault();
-
     const c = {x:Math.round(g_camera.eye.elements[0]+16), z:Math.round(g_camera.eye.elements[2]+16)};
-    if (g_map[c.x] && (g_map[c.x][c.z]===1||g_map[c.x][c.z]===2||g_map[c.x][c.z]===3)) {
+    if (g_map[c.x] && g_map[c.x][c.z]===2) {
       g_camera.eye.elements[0]=oldX; g_camera.eye.elements[2]=oldZ;
     }
   };
-
-  document.getElementById('titleCanvas').onclick = restartGame;
 
   // ── Render loop ──
   let frames = 0, fpsTime = performance.now();
@@ -676,20 +473,6 @@ function main() {
     }
 
     renderAllShapes();
-
-    // Pointer / reticle
-    const ptr = document.getElementById('pointer');
-    if (ptr) {
-      ptr.style.display = g_gameWon ? 'none' : '';
-      if (!g_gameWon) {
-        const fx=g_camera.eye.elements[0], fz=g_camera.eye.elements[2];
-        const dx=g_camera.at.elements[0]-fx, dz=g_camera.at.elements[2]-fz;
-        const len=Math.sqrt(dx*dx+dz*dz)||1;
-        const nx=Math.round(fx+(dx/len)*1.5+16), nz=Math.round(fz+(dz/len)*1.5+16);
-        const canRemove = nx>=0 && nx<MAP_SIZE && nz>=0 && nz<MAP_SIZE && g_map[nx] && (g_map[nx][nz]===1||g_map[nx][nz]===3);
-        ptr.classList.toggle('can-remove', !!canRemove);
-      }
-    }
 
     // FPS
     frames++;
