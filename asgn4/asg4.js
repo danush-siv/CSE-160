@@ -35,8 +35,6 @@ uniform vec4 u_FragColor;
 uniform float u_texColorWeight;
 uniform int u_whichTexture;
 uniform sampler2D u_Sampler1;
-uniform sampler2D u_Sampler3;
-uniform sampler2D u_Sampler4;
 
 uniform bool u_LightOn;
 uniform bool u_NormalVis;
@@ -73,8 +71,6 @@ void main() {
   } else {
     vec4 tex = vec4(1.0);
     if (u_whichTexture == 1) tex = texture2D(u_Sampler1, v_UV);
-    else if (u_whichTexture == 3) tex = texture2D(u_Sampler3, v_UV);
-    else if (u_whichTexture == 4) tex = texture2D(u_Sampler4, v_UV);
     baseColor = (u_texColorWeight < 0.1 || tex.a < 0.1)
       ? u_FragColor
       : mix(u_FragColor, tex, u_texColorWeight);
@@ -120,14 +116,14 @@ let canvas, gl;
 let a_Position, a_UV, a_Normal;
 let u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjectionMatrix;
 let u_FragColor, u_texColorWeight, u_whichTexture;
-let u_Sampler1, u_Sampler3, u_Sampler4;
+let u_Sampler1;
 let u_LightOn, u_NormalVis, u_LightPos, u_LightColor, u_CameraPos;
 let u_SpotOn, u_SpotPos, u_SpotDir, u_SpotCutoff;
 
 let g_camera;
 let g_map = [];
 const MAP_SIZE = 32;
-const g_textureLoaded = { 1: false, 3: false, 4: false };
+const g_textureLoaded = { 1: false };
 
 let g_verVelocity = 0;
 const G_GRAVITY = -0.01;
@@ -296,11 +292,7 @@ function buildMap() {
 // ─── Textures ───────────────────────────────────────────────────────────────
 
 function initTextures() {
-  const data = [
-    {unit:1, file:'sand.jpg', sampler:u_Sampler1},
-    {unit:3, file:'gold.jpg', sampler:u_Sampler3},
-    {unit:4, file:'dirt.jpg', sampler:u_Sampler4}
-  ];
+  const data = [{ unit: 1, file: 'sand.jpg', sampler: u_Sampler1 }];
   const base = window.location.href.replace(/[^/]*$/, '');
   data.forEach(d => {
     const tex = gl.createTexture(), img = new Image();
@@ -460,8 +452,6 @@ function main() {
   u_texColorWeight   = gl.getUniformLocation(gl.program, 'u_texColorWeight');
   u_whichTexture     = gl.getUniformLocation(gl.program, 'u_whichTexture');
   u_Sampler1         = gl.getUniformLocation(gl.program, 'u_Sampler1');
-  u_Sampler3         = gl.getUniformLocation(gl.program, 'u_Sampler3');
-  u_Sampler4         = gl.getUniformLocation(gl.program, 'u_Sampler4');
   u_LightOn          = gl.getUniformLocation(gl.program, 'u_LightOn');
   u_NormalVis        = gl.getUniformLocation(gl.program, 'u_NormalVis');
   u_LightPos         = gl.getUniformLocation(gl.program, 'u_LightPos');
