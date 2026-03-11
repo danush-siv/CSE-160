@@ -49,16 +49,16 @@ function addFogAndSkybox() {
   const fogColor = new THREE.Color(0x0b1020);
   scene.fog = new THREE.Fog(fogColor, 40, 160);
 
-  const loader = new THREE.CubeTextureLoader();
-  const skybox = loader.load([
-    'Assets/Skybox/posx.jpg',
-    'Assets/Skybox/negx.jpg',
-    'Assets/Skybox/posy.jpg',
-    'Assets/Skybox/negy.jpg',
-    'Assets/Skybox/posz.jpg',
-    'Assets/Skybox/negz.jpg',
-  ]);
-  scene.background = skybox;
+  // Use a single equirectangular JPG as the background
+  const loader = new THREE.TextureLoader();
+  loader.load(
+    'https://threejs.org/manual/examples/resources/images/equirectangularmaps/tears_of_steel_bridge_2k.jpg',
+    (texture) => {
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+      texture.colorSpace = THREE.SRGBColorSpace;
+      scene.background = texture;
+    }
+  );
 }
 
 function addLights() {
