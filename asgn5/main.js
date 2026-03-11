@@ -27,10 +27,11 @@ function main() {
     0.1,
     500
   );
-  camera.position.set(15, 12, 25);
+  // Pull the camera back and up so we see the whole horse
+  camera.position.set(30, 18, 40);
 
   controls = new OrbitControls(camera, canvas);
-  controls.target.set(0, 4, 0);
+  controls.target.set(0, 5, -8);
   controls.enableDamping = true;
 
   addFogAndSkybox();
@@ -147,7 +148,8 @@ function addCustomModel() {
     'Assets/Models/Horse.glb',
     (gltf) => {
       const model = gltf.scene;
-      model.position.set(0, 0, 0);
+      // Move the horse slightly back so it fits nicely in view
+      model.position.set(0, 0, -8);
       model.scale.set(0.5, 0.5, 0.5);
       model.traverse((child) => {
         if (child.isMesh) {
