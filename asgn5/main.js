@@ -52,7 +52,7 @@ function addFogAndSkybox() {
   // Use a single equirectangular JPG as the background
   const loader = new THREE.TextureLoader();
   loader.load(
-    'https://threejs.org/manual/examples/resources/images/equirectangularmaps/tears_of_steel_bridge_2k.jpg',
+    'Assets/Skybox/tears_of_steel_bridge.jpg',
     (texture) => {
       texture.mapping = THREE.EquirectangularReflectionMapping;
       texture.colorSpace = THREE.SRGBColorSpace;
