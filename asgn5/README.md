@@ -22,6 +22,5 @@ This assignment recreates a 3D scene using the Three.js library instead of raw W
 ## Credits / Tools
 
 - Skybox: [Tears of Steel Bridge](https://polyhaven.com/a/tears_of_steel_bridge) from Poly Haven (CC0).
-- Lava floor texture: `lavatile.jpg` from the student's assets.
-- Three.js and its examples modules (OrbitControls, GLTFLoader) loaded from jsDelivr CDN.
+- Lava floor texture: `lavatile.jpg`
 - For small syntax/organization help and scaffolding with Three.js, I used ChatGPT.
